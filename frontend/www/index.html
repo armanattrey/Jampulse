@@ -55,10 +55,12 @@
         <button class="btn btn-subtle" id="openLoginModalBtn">Sign In</button>
       </div>
 
-      <div id="authControls" class="user-chip hidden">
+      <!-- Interactive User Profile Pill -->
+      <div id="authControls" class="user-chip hidden" onclick="openProfileDrawer()" title="View Profile & Settings">
+        <img id="navAvatarImg" class="user-avatar-img hidden" alt="Avatar" />
         <div class="user-avatar" id="avatarInitial" aria-hidden="true">U</div>
         <span class="user-name" id="navUserName">Artist</span>
-        <button class="btn-logout" id="logoutBtn" title="Log Out" aria-label="Log Out">✕</button>
+        <span class="chevron-sm">⚙️</span>
       </div>
     </div>
   </header>
@@ -156,55 +158,61 @@
 
   <!-- 2. Sign In / Sign Up Modal -->
   <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-    <div class="modal-card">
+    <div class="modal-card auth-modal-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
-      <div class="modal-header">
-        <h3 id="authModalTitle">Join JamPulse</h3>
-        <p>Connect with local musicians, discover jams, or host your own band.</p>
+      
+      <div class="modal-header auth-header-center">
+        <div class="auth-icon-badge" aria-hidden="true">🎸</div>
+        <h3 id="authModalTitle">Welcome to JamPulse</h3>
+        <p>Connect with local musicians, discover jams, or host your circle.</p>
       </div>
 
+      <!-- Real Google OAuth Interactive Button -->
       <div class="google-auth-box">
-        <div id="googleOneTapBtn" style="display:flex;justify-content:center;"></div>
-        <button class="btn btn-social btn-block mt-2" id="simulatedGoogleBtn" type="button">
+        <button class="btn btn-social-google btn-block" id="googleLoginTriggerBtn" type="button">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
             <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
             <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
             <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"/>
           </svg>
-          Continue with Google
+          <span id="googleBtnLabel">Continue with Google</span>
         </button>
       </div>
 
-      <div class="divider-text"><span>OR VERIFY WITH</span></div>
+      <div class="divider-text"><span>OR CONTINUE WITH</span></div>
 
-      <div class="auth-tabs" role="tablist">
-        <button class="tab-btn active" id="tabPhone" role="tab" aria-selected="true" aria-controls="phoneAuthBox">🇮🇳 Mobile Number</button>
-        <button class="tab-btn" id="tabEmail" role="tab" aria-selected="false" aria-controls="emailAuthBox">✉️ Email</button>
-        <button class="tab-btn" id="tabGuest" role="tab" aria-selected="false" aria-controls="guestAuthBox">Guest</button>
+      <!-- Segmented Navigation Switcher -->
+      <div class="auth-tabs-segmented" role="tablist">
+        <button class="seg-tab-btn active" id="tabPhone" role="tab" aria-selected="true" aria-controls="phoneAuthBox">Mobile</button>
+        <button class="seg-tab-btn" id="tabEmail" role="tab" aria-selected="false" aria-controls="emailAuthBox">Email</button>
+        <button class="seg-tab-btn" id="tabGuest" role="tab" aria-selected="false" aria-controls="guestAuthBox">Guest</button>
       </div>
 
       <!-- Tab A: Phone Form -->
       <div class="tab-content" id="phoneAuthBox" role="tabpanel">
         <div id="phoneStep1">
           <div class="form-group">
-            <label for="loginPhoneInput">Indian Mobile Number (+91)</label>
-            <input type="tel" id="loginPhoneInput" placeholder="9876543210 or +91 9876543210" />
-            <span class="field-hint" id="phoneValidateStatus">Real Indian mobile validation active</span>
+            <label for="loginPhoneInput">Indian Mobile Number</label>
+            <div class="phone-input-combo">
+              <span class="phone-prefix-tag">🇮🇳 +91</span>
+              <input type="tel" id="loginPhoneInput" placeholder="98765 43210" maxlength="10" />
+            </div>
+            <span class="field-hint" id="phoneValidateStatus">We will send a 6-digit verification code</span>
           </div>
-          <button class="btn btn-brand btn-block" id="sendOtpBtn" type="button">Send Mobile OTP</button>
+          <button class="btn btn-brand btn-block mt-3" id="sendOtpBtn" type="button">Send Verification OTP</button>
         </div>
 
         <div id="phoneStep2" class="hidden">
           <div class="form-group">
             <label for="loginOtpInput">Enter 6-Digit SMS Code</label>
-            <input type="text" id="loginOtpInput" placeholder="6-digit OTP" maxlength="6" />
+            <input type="text" id="loginOtpInput" class="otp-input-field" placeholder="• • • • • •" maxlength="6" />
           </div>
-          <div class="form-group">
+          <div class="form-group mt-2">
             <label for="loginNameInput">Your Name / Artist Handle</label>
-            <input type="text" id="loginNameInput" placeholder="e.g. Rahul on Vocals" />
+            <input type="text" id="loginNameInput" placeholder="e.g. Rahul Sharma" />
           </div>
-          <button class="btn btn-brand btn-block" id="verifyOtpBtn" type="button">Verify & Enter</button>
+          <button class="btn btn-brand btn-block mt-3" id="verifyOtpBtn" type="button">Verify & Enter</button>
         </div>
       </div>
 
@@ -213,29 +221,31 @@
         <div id="emailStep1">
           <div class="form-group">
             <label for="loginEmailInput">Email Address</label>
-            <input type="email" id="loginEmailInput" placeholder="name@domain.com" />
-            <span class="field-hint" id="emailValidateStatus">Live DNS MX mail check active</span>
+            <input type="email" id="loginEmailInput" placeholder="artist@domain.com" />
+            <span class="field-hint" id="emailValidateStatus">Live verification code delivered to inbox</span>
           </div>
-          <button class="btn btn-brand btn-block" id="sendEmailOtpBtn" type="button">Verify & Send Email Code</button>
+          <button class="btn btn-brand btn-block mt-3" id="sendEmailOtpBtn" type="button">Send Email Code</button>
         </div>
 
         <div id="emailStep2" class="hidden">
           <div class="form-group">
             <label for="loginEmailOtpInput">Enter 6-Digit Email Code</label>
-            <input type="text" id="loginEmailOtpInput" placeholder="6-digit code" maxlength="6" />
+            <input type="text" id="loginEmailOtpInput" class="otp-input-field" placeholder="• • • • • •" maxlength="6" />
           </div>
-          <div class="form-group">
+          <div class="form-group mt-2">
             <label for="loginEmailNameInput">Your Name / Artist Handle</label>
             <input type="text" id="loginEmailNameInput" placeholder="e.g. Maya Strings" />
           </div>
-          <button class="btn btn-brand btn-block" id="verifyEmailOtpBtn" type="button">Confirm & Sign In</button>
+          <button class="btn btn-brand btn-block mt-3" id="verifyEmailOtpBtn" type="button">Confirm & Sign In</button>
         </div>
       </div>
 
       <!-- Tab C: Guest Access -->
       <div class="tab-content hidden" id="guestAuthBox" role="tabpanel">
-        <p class="guest-desc">Jump straight in as a guest without verification.</p>
-        <button class="btn btn-brand btn-block" id="guestLoginBtn" type="button">Enter as Guest Jammer</button>
+        <div class="guest-card-box">
+          <p class="guest-desc">Jump straight in as an explorer to browse jams, venues, and nearby artists without verification.</p>
+          <button class="btn btn-brand btn-block mt-3" id="guestLoginBtn" type="button">Enter as Guest Jammer</button>
+        </div>
       </div>
     </div>
   </div>
@@ -376,10 +386,74 @@
           💬 Message on WhatsApp
         </a>
         <button id="inAppContactBtn" class="btn btn-brand" type="button">
-          ✉️ Send In-App Message
+          ✉ Send In-App Message
         </button>
-        <button id="secureCallBtn" class="btn btn-outline" type="button">
-          📞 Secure Voice Call (Hidden Number)
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Artist Profile & Settings Center Modal -->
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      
+      <div class="profile-header-card">
+        <div class="profile-avatar-large-wrapper">
+          <img id="profileLargeAvatar" class="avatar-large hidden" src="" alt="User Avatar" />
+          <div id="profileLargeInitial" class="avatar-large-fallback">U</div>
+        </div>
+        <h3 id="profileNameDisplay">Artist Name</h3>
+        <p id="profileEmailDisplay" class="profile-subtext">user@email.com</p>
+        <span id="profileRoleBadge" class="badge-role">Guitarist</span>
+      </div>
+
+      <div class="profile-sections">
+        <div class="form-group">
+          <label for="editArtistName">Artist / Display Name</label>
+          <input type="text" id="editArtistName" placeholder="Your name or band handle" />
+        </div>
+
+        <div class="form-group">
+          <label for="editArtistRole">Primary Role</label>
+          <select id="editArtistRole">
+            <option value="Guitarist">Guitarist</option>
+            <option value="Vocalist">Vocalist</option>
+            <option value="Drummer/Percussion">Drummer / Percussion</option>
+            <option value="Bassist">Bassist</option>
+            <option value="Keys">Keys / Piano</option>
+            <option value="Musician">General Musician</option>
+            <option value="Listener/Fan">Listener / Fan</option>
+          </select>
+        </div>
+
+        <!-- Multi-Option Selection Grid for Skills/Instruments -->
+        <div class="form-group">
+          <label>Skills & Instruments (Select Multiple)</label>
+          <div class="instruments-multi-grid" id="instrumentsMultiSelector">
+            <label class="chip-checkbox"><input type="checkbox" value="Vocals"><span>🎤 Vocals</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Acoustic Guitar"><span>🎸 Acoustic</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Electric Guitar"><span>⚡ Electric</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Bass"><span>🎻 Bass</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Drums/Cajon"><span>🥁 Drums / Cajon</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Keyboard/Synth"><span>🎹 Keyboards</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Flute/Wind"><span>🪈 Flute</span></label>
+            <label class="chip-checkbox"><input type="checkbox" value="Production"><span>🎧 Production</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editArtistBio">Musical Bio</label>
+          <textarea id="editArtistBio" rows="2" placeholder="Tell nearby jammers what styles and genres you play..."></textarea>
+        </div>
+
+        <button class="btn btn-brand btn-block mt-3" id="saveProfileBtn" type="button">Save Profile Details</button>
+      </div>
+
+      <hr class="divider-line" />
+
+      <div class="settings-actions-stack">
+        <button class="btn btn-outline btn-block text-danger" id="drawerLogoutBtn" type="button">
+          🚪 Sign Out of JamPulse
         </button>
       </div>
     </div>

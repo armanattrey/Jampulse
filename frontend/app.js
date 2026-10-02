@@ -20,6 +20,7 @@ let activeVibe = 'All';
 let currentSort = 'distance';
 let searchQuery = '';
 let jamsData = [];
+let activeJamStatus = 'ready';
 
 // Auth State
 let token = localStorage.getItem('jam_auth_token') || null;
@@ -174,7 +175,7 @@ function initGoogleAuth() {
   };
 }
 
-// --- 3. Profile Drawer & Multi-Option Sync ---
+// --- 3. Profile Drawer & Multi-Option Interactive Controller ---
 window.openProfileDrawer = () => {
   if (!currentUser) return;
 
@@ -185,38 +186,79 @@ window.openProfileDrawer = () => {
   const largeInitial = document.getElementById('profileLargeInitial');
 
   const editName = document.getElementById('editArtistName');
-  const editRole = document.getElementById('editArtistRole');
+  const editRoleHidden = document.getElementById('editArtistRole');
   const editBio = document.getElementById('editArtistBio');
 
+  // Stats Calculation
+  const jamsJoinedCount = (jamsData || []).filter(j => j.rsvpUsers?.includes(currentUser._id)).length;
+  const statJams = document.getElementById('statJamsCount');
+  if (statJams) statJams.innerText = jamsJoinedCount || '1';
+
   if (nameDisp) nameDisp.innerText = currentUser.name || 'Artist';
-  if (emailDisp) emailDisp.innerText = currentUser.email || currentUser.phone || 'JamPulse Member';
-  if (roleBadge) roleBadge.innerText = currentUser.role || 'Guitarist';
+  if (emailDisp) emailDisp.innerText = currentUser.email || currentUser.phone || '@musician';
+
+  const userRole = currentUser.role || 'Guitarist';
+  if (roleBadge) roleBadge.innerText = `⚡ ${userRole}`;
+  if (editRoleHidden) editRoleHidden.value = userRole;
 
   if (editName) editName.value = currentUser.name || '';
-  if (editRole) editRole.value = currentUser.role || 'Guitarist';
   if (editBio) editBio.value = currentUser.bio || '';
 
   // Avatar Image Sync
   if (currentUser.avatarUrl && largeImg) {
     largeImg.src = currentUser.avatarUrl;
     largeImg.classList.remove('hidden');
-    largeInitial.classList.add('hidden');
+    if (largeInitial) largeInitial.classList.add('hidden');
   } else if (largeInitial) {
-    largeImg.classList.add('hidden');
+    if (largeImg) largeImg.classList.add('hidden');
     largeInitial.classList.remove('hidden');
     largeInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
   }
 
-  // Sync multi-option instrument checkboxes
-  const checkboxes = document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]');
+  // Visual Role Cards Selection
+  document.querySelectorAll('#visualRoleGrid .role-tile').forEach(tile => {
+    tile.classList.toggle('active', tile.dataset.role === userRole);
+  });
+
+  // Instruments Multi-select Checkboxes
   const userInstruments = currentUser.instruments || [];
-  checkboxes.forEach(cb => {
+  document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]').forEach(cb => {
     cb.checked = userInstruments.includes(cb.value);
   });
 
   openModal('profileModal');
 };
 
+// Interactive Role Tiles Click Handler
+document.querySelectorAll('#visualRoleGrid .role-tile').forEach(tile => {
+  tile.addEventListener('click', () => {
+    document.querySelectorAll('#visualRoleGrid .role-tile').forEach(t => t.classList.remove('active'));
+    tile.classList.add('active');
+    const roleVal = tile.dataset.role;
+    const roleHidden = document.getElementById('editArtistRole');
+    if (roleHidden) roleHidden.value = roleVal;
+    const roleBadge = document.getElementById('profileRoleBadge');
+    if (roleBadge) roleBadge.innerText = `⚡ ${roleVal}`;
+  });
+});
+
+// Interactive Jam Status Switcher Pills
+document.querySelectorAll('.status-pill-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.status-pill-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeJamStatus = btn.dataset.status;
+
+    const pulseDot = document.getElementById('avatarPulseDot');
+    if (pulseDot) {
+      if (activeJamStatus === 'ready') pulseDot.style.background = '#22c55e';
+      else if (activeJamStatus === 'studio') pulseDot.style.background = '#f97316';
+      else pulseDot.style.background = '#a855f7';
+    }
+  });
+});
+
+// Save Profile Details
 const saveProfileBtn = document.getElementById('saveProfileBtn');
 if (saveProfileBtn) {
   saveProfileBtn.addEventListener('click', async () => {
@@ -226,13 +268,12 @@ if (saveProfileBtn) {
     const updatedRole = document.getElementById('editArtistRole')?.value;
     const updatedBio = document.getElementById('editArtistBio')?.value.trim();
 
-    // Collect all checked instruments
     const selectedInstruments = [];
     document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]:checked').forEach(cb => {
       selectedInstruments.push(cb.value);
     });
 
-    saveProfileBtn.innerText = 'Saving...';
+    saveProfileBtn.innerText = 'Syncing Changes...';
 
     try {
       const res = await fetch(`${API_BASE}/auth/profile`, {
@@ -250,20 +291,35 @@ if (saveProfileBtn) {
       });
 
       const data = await res.json();
-      saveProfileBtn.innerText = 'Save Profile Details';
+      saveProfileBtn.innerText = '✨ Save Profile Details';
 
       if (res.ok && data.user) {
         currentUser = data.user;
         localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
         updateAuthUI();
         closeModals();
-        alert('Profile details saved to database!');
+        alert('Studio profile updated & synced to cloud!');
       } else {
         alert(data.error || 'Failed to update profile.');
       }
     } catch (err) {
-      saveProfileBtn.innerText = 'Save Profile Details';
-      alert('Network error while saving profile.');
+      saveProfileBtn.innerText = '✨ Save Profile Details';
+      alert('Network error while updating profile.');
+    }
+  });
+}
+
+// Share Artist Card Button
+const shareProfileCardBtn = document.getElementById('shareProfileCardBtn');
+if (shareProfileCardBtn) {
+  shareProfileCardBtn.addEventListener('click', () => {
+    const handle = currentUser?.name || 'Artist';
+    const profileUrl = `${window.location.origin}/?artist=${encodeURIComponent(handle)}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(profileUrl);
+      alert(`Copied link to clipboard!\n${profileUrl}`);
+    } else {
+      alert(`Share this artist link:\n${profileUrl}`);
     }
   });
 }
@@ -290,6 +346,9 @@ function logout() {
 
 const drawerLogoutBtn = document.getElementById('drawerLogoutBtn');
 if (drawerLogoutBtn) drawerLogoutBtn.addEventListener('click', logout);
+
+const navLogoutBtn = document.getElementById('logoutBtn');
+if (navLogoutBtn) navLogoutBtn.addEventListener('click', logout);
 
 function updateAuthUI() {
   if (token && currentUser) {

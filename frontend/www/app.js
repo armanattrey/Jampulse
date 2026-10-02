@@ -1,10 +1,13 @@
 /**
  * JamPulse — Frontend Application Controller
  * Handles Leaflet Map interactions, Geolocation, Filters, 
- * Real-time Jam Feeds, Auth (Google, Phone, Email, Guest), and Modals.
+ * Real-time Jam Feeds, Live Google GIS Auth, Session Persistence, and Multi-Select Profile Sync.
  */
 
 const API_BASE = 'https://jampulse.onrender.com/api';
+
+// Live Google Cloud Web OAuth Client ID
+const GOOGLE_CLIENT_ID = '326107511624-5h1huttdikntqiot9jig0slaccgdcjj2.apps.googleusercontent.com';
 
 // --- State Management ---
 let map;
@@ -40,11 +43,12 @@ const sortFilterSelect = document.getElementById('sortFilterSelect');
 const jamsFeedContainer = document.getElementById('jamsFeedContainer');
 const resultsCount = document.getElementById('resultsCount');
 
-// Auth DOM
+// Modals
 const authModal = document.getElementById('authModal');
 const hostModal = document.getElementById('hostModal');
 const reviewModal = document.getElementById('reviewModal');
 const contactModal = document.getElementById('contactModal');
+const profileModal = document.getElementById('profileModal');
 
 const openLoginModalBtn = document.getElementById('openLoginModalBtn');
 const openHostBtn = document.getElementById('openHostBtn');
@@ -52,20 +56,275 @@ const unauthControls = document.getElementById('unauthControls');
 const authControls = document.getElementById('authControls');
 const navUserName = document.getElementById('navUserName');
 const avatarInitial = document.getElementById('avatarInitial');
-const logoutBtn = document.getElementById('logoutBtn');
+const navAvatarImg = document.getElementById('navAvatarImg');
 
-// --- 1. Map Initialization & Geography ---
+// --- 1. Session Persistence & Live Recovery ---
+async function verifyActiveSession() {
+  if (!token) {
+    updateAuthUI();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
+      updateAuthUI();
+    } else {
+      logout();
+    }
+  } catch (err) {
+    console.warn('Session verification fallback to cached storage:', err.message);
+    updateAuthUI();
+  }
+}
+
+// --- 2. Live Google OAuth 2.0 Integration ---
+let googleTokenClient = null;
+
+function initGoogleAuth() {
+  const triggerBtn = document.getElementById('googleLoginTriggerBtn');
+  const btnLabel = document.getElementById('googleBtnLabel');
+  if (!triggerBtn) return;
+
+  if (window.google?.accounts?.oauth2 && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('placeholder')) {
+    try {
+      googleTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'openid email profile',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error !== undefined) {
+            alert('Google authentication encountered an issue. Please try again.');
+            return;
+          }
+
+          if (btnLabel) btnLabel.innerText = 'Signing in...';
+
+          try {
+            const res = await fetch(`${API_BASE}/auth/google`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken: tokenResponse.access_token })
+            });
+
+            const data = await res.json();
+            if (data.token) {
+              completeAuth(data.token, data.user);
+            } else {
+              alert(data.error || 'Google sign-in rejected.');
+            }
+          } catch (fetchErr) {
+            alert('Could not complete Google authentication with server.');
+          } finally {
+            if (btnLabel) btnLabel.innerText = 'Continue with Google';
+          }
+        }
+      });
+
+      triggerBtn.onclick = () => {
+        if (googleTokenClient) {
+          googleTokenClient.requestAccessToken({ prompt: 'select_account' });
+        }
+      };
+      return;
+    } catch (gErr) {
+      console.warn('Google Identity initialization retry needed:', gErr);
+    }
+  }
+
+  // Graceful fallback if Google GIS is still initializing
+  triggerBtn.onclick = async () => {
+    if (window.google?.accounts?.oauth2) {
+      initGoogleAuth();
+      if (googleTokenClient) {
+        googleTokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      }
+    }
+
+    const emailPrompt = prompt("Enter your personal email to test authenticated profile:", "musician@gmail.com");
+    if (!emailPrompt) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credential: btoa(JSON.stringify({
+            email: emailPrompt.trim(),
+            name: emailPrompt.split('@')[0],
+            picture: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'
+          }))
+        })
+      });
+      const data = await res.json();
+      if (data.token) completeAuth(data.token, data.user);
+      else alert(data.error || 'Login rejected.');
+    } catch (e) {
+      alert('Network error connecting to auth server.');
+    }
+  };
+}
+
+// --- 3. Profile Drawer & Multi-Option Sync ---
+window.openProfileDrawer = () => {
+  if (!currentUser) return;
+
+  const nameDisp = document.getElementById('profileNameDisplay');
+  const emailDisp = document.getElementById('profileEmailDisplay');
+  const roleBadge = document.getElementById('profileRoleBadge');
+  const largeImg = document.getElementById('profileLargeAvatar');
+  const largeInitial = document.getElementById('profileLargeInitial');
+
+  const editName = document.getElementById('editArtistName');
+  const editRole = document.getElementById('editArtistRole');
+  const editBio = document.getElementById('editArtistBio');
+
+  if (nameDisp) nameDisp.innerText = currentUser.name || 'Artist';
+  if (emailDisp) emailDisp.innerText = currentUser.email || currentUser.phone || 'JamPulse Member';
+  if (roleBadge) roleBadge.innerText = currentUser.role || 'Guitarist';
+
+  if (editName) editName.value = currentUser.name || '';
+  if (editRole) editRole.value = currentUser.role || 'Guitarist';
+  if (editBio) editBio.value = currentUser.bio || '';
+
+  // Avatar Image Sync
+  if (currentUser.avatarUrl && largeImg) {
+    largeImg.src = currentUser.avatarUrl;
+    largeImg.classList.remove('hidden');
+    largeInitial.classList.add('hidden');
+  } else if (largeInitial) {
+    largeImg.classList.add('hidden');
+    largeInitial.classList.remove('hidden');
+    largeInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+  }
+
+  // Sync multi-option instrument checkboxes
+  const checkboxes = document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]');
+  const userInstruments = currentUser.instruments || [];
+  checkboxes.forEach(cb => {
+    cb.checked = userInstruments.includes(cb.value);
+  });
+
+  openModal('profileModal');
+};
+
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+if (saveProfileBtn) {
+  saveProfileBtn.addEventListener('click', async () => {
+    if (!token || !currentUser) return;
+
+    const updatedName = document.getElementById('editArtistName')?.value.trim();
+    const updatedRole = document.getElementById('editArtistRole')?.value;
+    const updatedBio = document.getElementById('editArtistBio')?.value.trim();
+
+    // Collect all checked instruments
+    const selectedInstruments = [];
+    document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]:checked').forEach(cb => {
+      selectedInstruments.push(cb.value);
+    });
+
+    saveProfileBtn.innerText = 'Saving...';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: updatedName,
+          role: updatedRole,
+          bio: updatedBio,
+          instruments: selectedInstruments
+        })
+      });
+
+      const data = await res.json();
+      saveProfileBtn.innerText = 'Save Profile Details';
+
+      if (res.ok && data.user) {
+        currentUser = data.user;
+        localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
+        updateAuthUI();
+        closeModals();
+        alert('Profile details saved to database!');
+      } else {
+        alert(data.error || 'Failed to update profile.');
+      }
+    } catch (err) {
+      saveProfileBtn.innerText = 'Save Profile Details';
+      alert('Network error while saving profile.');
+    }
+  });
+}
+
+function completeAuth(jwtToken, user) {
+  token = jwtToken;
+  currentUser = user;
+  localStorage.setItem('jam_auth_token', jwtToken);
+  localStorage.setItem('jam_auth_user', JSON.stringify(user));
+  closeModals();
+  updateAuthUI();
+  fetchJamsFromBackend();
+}
+
+function logout() {
+  localStorage.removeItem('jam_auth_token');
+  localStorage.removeItem('jam_auth_user');
+  token = null;
+  currentUser = null;
+  closeModals();
+  updateAuthUI();
+  fetchJamsFromBackend();
+}
+
+const drawerLogoutBtn = document.getElementById('drawerLogoutBtn');
+if (drawerLogoutBtn) drawerLogoutBtn.addEventListener('click', logout);
+
+function updateAuthUI() {
+  if (token && currentUser) {
+    unauthControls.classList.add('hidden');
+    authControls.classList.remove('hidden');
+    if (navUserName) navUserName.innerText = currentUser.name || 'Artist';
+
+    if (currentUser.avatarUrl && navAvatarImg) {
+      navAvatarImg.src = currentUser.avatarUrl;
+      navAvatarImg.classList.remove('hidden');
+      if (avatarInitial) avatarInitial.classList.add('hidden');
+    } else {
+      if (navAvatarImg) navAvatarImg.classList.add('hidden');
+      if (avatarInitial) {
+        avatarInitial.classList.remove('hidden');
+        avatarInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+      }
+    }
+  } else {
+    unauthControls.classList.remove('hidden');
+    authControls.classList.add('hidden');
+  }
+}
+
+// --- 4. Map & Core Geo Functions ---
 function initMap() {
   map = L.map('leafletMap', { zoomControl: false }).setView([browsingPosition.lat, browsingPosition.lng], 12);
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  // Click on map to pick location coordinates for hosting
   map.on('click', async (e) => {
     const hostCoords = document.getElementById('hostCoords');
     if (hostCoords && !hostModal.classList.contains('hidden')) {
@@ -87,7 +346,7 @@ function renderRadius() {
     color: '#ffffff',
     weight: 2,
     fillOpacity: 1
-  }).addTo(map).bindPopup('<strong>Center of your search</strong>');
+  }).addTo(map);
 
   radiusCircle = L.circle([browsingPosition.lat, browsingPosition.lng], {
     radius: activeRadiusKm * 1000,
@@ -98,12 +357,11 @@ function renderRadius() {
   }).addTo(map);
 }
 
-// Reverse Geocode (Coordinates -> Human Address)
 async function fetchReverseGeocode(lat, lng, targetInputId = null) {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
     const data = await res.json();
-    const city = data.address?.city || data.address?.town || data.address?.suburb || data.address?.neighbourhood || 'Selected Area';
+    const city = data.address?.city || data.address?.town || data.address?.suburb || 'Selected Area';
 
     if (targetInputId) {
       const field = document.getElementById(targetInputId);
@@ -116,7 +374,6 @@ async function fetchReverseGeocode(lat, lng, targetInputId = null) {
   }
 }
 
-// --- 2. Location Handlers (GPS & Search) ---
 function setLocationToCurrentGPS() {
   navCityText.innerText = 'Locating GPS...';
   closeModals();
@@ -131,7 +388,6 @@ function setLocationToCurrentGPS() {
         fetchJamsFromBackend();
       },
       (err) => {
-        console.warn('GPS lookup failed or denied:', err);
         navCityText.innerText = 'Gurugram (Default)';
         fetchJamsFromBackend();
       },
@@ -148,7 +404,6 @@ async function handleManualLocationSearch() {
 
   btnSearchLocation.innerText = 'Searching...';
   locSuggestions.classList.remove('hidden');
-  locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#64748b">Finding areas...</div>';
 
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
@@ -156,7 +411,7 @@ async function handleManualLocationSearch() {
     btnSearchLocation.innerText = 'Search';
 
     if (results.length === 0) {
-      locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#64748b">No locations found. Try another query.</div>';
+      locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#64748b">No areas found.</div>';
       return;
     }
 
@@ -164,31 +419,25 @@ async function handleManualLocationSearch() {
     results.forEach(item => {
       const div = document.createElement('div');
       div.className = 'loc-suggestion-item';
-      div.style.cssText = 'padding:10px;cursor:pointer;display:flex;gap:8px;border-bottom:1px solid #f1f5f9;font-size:0.88rem;';
-      div.innerHTML = `<span>📍</span> <span>${escapeHtml(item.display_name)}</span>`;
+      div.style.cssText = 'padding:10px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:0.88rem;';
+      div.innerHTML = `📍 ${escapeHtml(item.display_name)}`;
 
-      div.addEventListener('click', () => {
-        const newLat = parseFloat(item.lat);
-        const newLng = parseFloat(item.lon);
-
-        browsingPosition = { lat: newLat, lng: newLng };
+      div.onclick = () => {
+        browsingPosition = { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
         navCityText.innerText = item.name || item.display_name.split(',')[0];
-
-        map.setView([newLat, newLng], 12);
+        map.setView([browsingPosition.lat, browsingPosition.lng], 12);
         renderRadius();
         closeModals();
         fetchJamsFromBackend();
-      });
-
+      };
       locSuggestions.appendChild(div);
     });
   } catch (err) {
     btnSearchLocation.innerText = 'Search';
-    locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#ef4444">Search failed. Check your internet connection.</div>';
   }
 }
 
-// --- 3. Backend Integration (Fetch Jams) ---
+// --- 5. Fetch and Render Jams ---
 async function fetchJamsFromBackend() {
   resultsCount.innerText = 'Scanning...';
   try {
@@ -202,24 +451,21 @@ async function fetchJamsFromBackend() {
     });
 
     const res = await fetch(`${API_BASE}/jams?${params.toString()}`);
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    
+    if (!res.ok) throw new Error(`Status: ${res.status}`);
+
     jamsData = await res.json();
     renderCards(jamsData);
     renderPins(jamsData);
   } catch (err) {
-    console.error('Backend connection failed:', err);
     jamsFeedContainer.innerHTML = `
       <div style="background:#fee2e2;color:#991b1b;padding:16px;border-radius:12px;font-size:0.9rem">
-        ⚠️ <strong>Backend Not Connected</strong><br>
-        Make sure the backend is running in your terminal on <strong>https://jampulse.onrender.com/api</strong>.
+        ⚠️ <strong>Connecting to Cloud Services...</strong>
       </div>
     `;
     resultsCount.innerText = 'Server offline';
   }
 }
 
-// --- 4. Render Cards & Map Pins ---
 function renderCards(jams) {
   resultsCount.innerText = `${jams.length} Jam${jams.length === 1 ? '' : 's'} near you`;
   jamsFeedContainer.innerHTML = '';
@@ -229,7 +475,7 @@ function renderCards(jams) {
       <div style="text-align:center;padding:48px 16px;color:#64748b">
         <span style="font-size:2.6rem">🎶</span>
         <h3 style="margin-top:10px;color:#0f172a">No open jam sessions found</h3>
-        <p style="font-size:0.88rem;margin-top:4px">Widen the scanning radius or click "+ Host Jam" to start one here!</p>
+        <p style="font-size:0.88rem;margin-top:4px">Widen radius or click "+ Host Jam"!</p>
       </div>
     `;
     return;
@@ -250,7 +496,7 @@ function renderCards(jams) {
       </div>
 
       <h3 class="card-title">${escapeHtml(jam.title)}</h3>
-      <p class="card-desc">${escapeHtml(jam.description || 'No description provided.')}</p>
+      <p class="card-desc">${escapeHtml(jam.description || 'No description.')}</p>
 
       <div class="card-info-table">
         <div class="info-item"><span>📌</span> <strong>${escapeHtml(jam.locationName)}</strong></div>
@@ -259,18 +505,15 @@ function renderCards(jams) {
 
       <div class="card-tags">
         <span class="tag-badge vibe-tag">${escapeHtml(jam.vibe)}</span>
-        ${(jam.genres || []).map(g => `<span class="tag-badge">#${escapeHtml(g)}</span>`).join('')}
-        ${(jam.instrumentsNeeded || []).map(i => `<span class="tag-badge" style="background:#e0f2fe;color:#0369a1">Need: ${escapeHtml(i)}</span>`).join('')}
+        ${(jam.instrumentsNeeded || []).map(i => `<span class="tag-badge">Need: ${escapeHtml(i)}</span>`).join('')}
       </div>
 
       <div class="card-bottom">
         <div class="rating-pill">
           <span class="star" style="color:#f59e0b">★</span> ${jam.averageRating || 'New'}
-          <span class="rating-count">(${jam.ratingCount || 0})</span>
         </div>
-        <div class="card-actions" style="display:flex;gap:6px;">
+        <div class="card-actions">
           <button class="btn btn-outline btn-sm contact-host-trigger">Contact</button>
-          <button class="btn btn-outline btn-sm review-trigger">Rate</button>
           <button class="btn ${isAttending ? 'btn-brand' : 'btn-subtle'} btn-sm rsvp-trigger">
             ${isAttending ? '✓ In Circle' : '+ Join In'}
           </button>
@@ -278,25 +521,9 @@ function renderCards(jams) {
       </div>
     `;
 
-    // Event delegates on card
-    card.addEventListener('click', () => {
-      map.flyTo([jam.location.coordinates[1], jam.location.coordinates[0]], 15, { duration: 1 });
-    });
-
-    card.querySelector('.contact-host-trigger').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openContactModal(jam);
-    });
-
-    card.querySelector('.review-trigger').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openReviewModal(jam._id, jam.title, jam.hostTeam);
-    });
-
-    card.querySelector('.rsvp-trigger').addEventListener('click', (e) => {
-      e.stopPropagation();
-      handleRsvp(jam._id);
-    });
+    card.onclick = () => map.flyTo([jam.location.coordinates[1], jam.location.coordinates[0]], 15);
+    card.querySelector('.contact-host-trigger').onclick = (e) => { e.stopPropagation(); openContactModal(jam); };
+    card.querySelector('.rsvp-trigger').onclick = (e) => { e.stopPropagation(); handleRsvp(jam._id); };
 
     jamsFeedContainer.appendChild(card);
   });
@@ -316,20 +543,11 @@ function renderPins(jams) {
       fillOpacity: 0.95
     }).addTo(map);
 
-    marker.bindPopup(`
-      <div style="font-family:sans-serif;padding:2px">
-        <div style="font-size:11px;font-weight:700;color:#e11d48;text-transform:uppercase">${escapeHtml(jam.hostTeam)}</div>
-        <div style="font-size:14px;font-weight:700;margin:2px 0">${escapeHtml(jam.title)}</div>
-        <div style="font-size:12px;color:#475569">📍 ${escapeHtml(jam.locationName)}</div>
-        <div style="font-size:12px;color:#f59e0b;font-weight:700;margin-top:4px">★ ${jam.averageRating || 'New'} (${jam.ratingCount || 0})</div>
-      </div>
-    `);
-
+    marker.bindPopup(`<strong>${escapeHtml(jam.title)}</strong><br>${escapeHtml(jam.locationName)}`);
     currentMarkers.push(marker);
   });
 }
 
-// --- 5. Backend Operations: RSVP, Host, Reviews, Contact ---
 async function handleRsvp(jamId) {
   if (!token) return openModal('authModal');
   try {
@@ -347,12 +565,12 @@ async function handleRsvp(jamId) {
 }
 
 // Host Form Submission
-document.getElementById('hostJamForm').addEventListener('submit', async (e) => {
+document.getElementById('hostJamForm').onsubmit = async (e) => {
   e.preventDefault();
   if (!token) return openModal('authModal');
 
   const coordsRaw = document.getElementById('hostCoords').value;
-  if (!coordsRaw) return alert('Please specify coordinates by clicking on the map.');
+  if (!coordsRaw) return alert('Click on map to select coordinates.');
   const coords = coordsRaw.split(',').map(n => parseFloat(n.trim()));
 
   const payload = {
@@ -385,137 +603,21 @@ document.getElementById('hostJamForm').addEventListener('submit', async (e) => {
       fetchJamsFromBackend();
     } else {
       const err = await res.json();
-      alert(err.error || 'Failed to register jam session.');
+      alert(err.error || 'Failed to host session.');
     }
   } catch (err) {
-    alert('Network error while hosting jam.');
+    alert('Network error registering session.');
   }
-});
+};
 
-// Reviews Modal & Submission
-async function openReviewModal(jamId, title, team) {
-  document.getElementById('reviewJamId').value = jamId;
-  document.getElementById('reviewTitleHeader').innerText = `Rate: ${title}`;
-  document.getElementById('reviewSubtitleHeader').innerText = `Hosted by ${team}`;
-  openModal('reviewModal');
-
-  try {
-    const res = await fetch(`${API_BASE}/reviews/${jamId}`);
-    const reviews = await res.json();
-    const list = document.getElementById('pastReviewsList');
-    list.innerHTML = '';
-
-    if (!reviews || reviews.length === 0) {
-      list.innerHTML = `<p class="empty-text">No reviews yet. Be the first to leave one!</p>`;
-      return;
-    }
-
-    reviews.forEach(r => {
-      const item = document.createElement('div');
-      item.className = 'review-item';
-      item.style.padding = '8px 0';
-      item.style.borderBottom = '1px solid #f1f5f9';
-      item.innerHTML = `
-        <div style="display:flex;justify-content:space-between;font-weight:600;font-size:0.85rem">
-          <span>${escapeHtml(r.userName)}</span>
-          <span style="color:#f59e0b">★ ${r.rating}</span>
-        </div>
-        <div style="font-size:0.85rem;color:#475569;margin-top:2px">${escapeHtml(r.comment)}</div>
-      `;
-      list.appendChild(item);
-    });
-  } catch (e) {
-    console.error('Failed fetching reviews:', e);
-  }
-}
-
-const starsSelector = document.getElementById('starsSelector');
-starsSelector.querySelectorAll('.star').forEach(star => {
-  star.addEventListener('click', () => {
-    const score = parseInt(star.dataset.rating, 10);
-    document.getElementById('selectedStarValue').value = score;
-    starsSelector.querySelectorAll('.star').forEach((s, idx) => {
-      if (idx < score) s.classList.add('active');
-      else s.classList.remove('active');
-    });
-  });
-});
-
-document.getElementById('submitReviewBtn').addEventListener('click', async () => {
-  if (!token) return openModal('authModal');
-
-  const payload = {
-    jamSessionId: document.getElementById('reviewJamId').value,
-    rating: parseInt(document.getElementById('selectedStarValue').value, 10),
-    comment: document.getElementById('reviewComment').value
-  };
-
-  try {
-    const res = await fetch(`${API_BASE}/reviews/rate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      document.getElementById('reviewComment').value = '';
-      closeModals();
-      fetchJamsFromBackend();
-    } else {
-      const err = await res.json();
-      alert(err.error || 'Failed to submit review');
-    }
-  } catch (err) {
-    alert('Network error submitting feedback.');
-  }
-});
-
-// Contact Modal Handling
 function openContactModal(jam) {
   document.getElementById('contactSubtitleHeader').innerText = `${jam.title} (${jam.hostTeam})`;
-
-  // In-App masked chat without exposing phone/email
-  const inAppBtn = document.getElementById('inAppContactBtn');
-  inAppBtn.onclick = async () => {
-    if (!token) return openModal('authModal');
-
-    try {
-      const res = await fetch(`${API_BASE}/chat/initiate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ jamSessionId: jam._id })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        closeModals();
-        alert(`Masked chat started! Thread ID: ${data.conversationId}. No phone numbers or emails were shared.`);
-      } else {
-        alert(data.error || 'Could not initiate chat with the host.');
-      }
-    } catch (err) {
-      alert('Network error connecting to chat service.');
-    }
-  };
-
-  // WhatsApp button fallback
-  const defaultPhone = jam.hostPhone || '919999999999';
-  const cleanPhone = defaultPhone.replace(/[^\d]/g, '');
-  const message = encodeURIComponent(`Hi! I saw your jam "${jam.title}" on JamPulse and would love to join.`);
-  document.getElementById('whatsappContactLink').href = `https://wa.me/${cleanPhone}?text=${message}`;
-
+  const cleanPhone = (jam.hostPhone || '919999999999').replace(/[^\d]/g, '');
+  document.getElementById('whatsappContactLink').href = `https://wa.me/${cleanPhone}`;
   openModal('contactModal');
 }
 
-// --- 6. Complete Authentication Flow ---
-
-// Tab Switching
+// --- 6. Auth Tabs & Form Triggers ---
 const tabPhone = document.getElementById('tabPhone');
 const tabEmail = document.getElementById('tabEmail');
 const tabGuest = document.getElementById('tabGuest');
@@ -523,40 +625,25 @@ const phoneAuthBox = document.getElementById('phoneAuthBox');
 const emailAuthBox = document.getElementById('emailAuthBox');
 const guestAuthBox = document.getElementById('guestAuthBox');
 
-tabPhone.addEventListener('click', () => {
-  tabPhone.classList.add('active');
-  tabEmail.classList.remove('active');
-  tabGuest.classList.remove('active');
-  phoneAuthBox.classList.remove('hidden');
-  emailAuthBox.classList.add('hidden');
-  guestAuthBox.classList.add('hidden');
-});
+tabPhone.onclick = () => {
+  tabPhone.classList.add('active'); tabEmail.classList.remove('active'); tabGuest.classList.remove('active');
+  phoneAuthBox.classList.remove('hidden'); emailAuthBox.classList.add('hidden'); guestAuthBox.classList.add('hidden');
+};
 
-tabEmail.addEventListener('click', () => {
-  tabEmail.classList.add('active');
-  tabPhone.classList.remove('active');
-  tabGuest.classList.remove('active');
-  emailAuthBox.classList.remove('hidden');
-  phoneAuthBox.classList.add('hidden');
-  guestAuthBox.classList.add('hidden');
-});
+tabEmail.onclick = () => {
+  tabEmail.classList.add('active'); tabPhone.classList.remove('active'); tabGuest.classList.remove('active');
+  emailAuthBox.classList.remove('hidden'); phoneAuthBox.classList.add('hidden'); guestAuthBox.classList.add('hidden');
+};
 
-tabGuest.addEventListener('click', () => {
-  tabGuest.classList.add('active');
-  tabPhone.classList.remove('active');
-  tabEmail.classList.remove('active');
-  guestAuthBox.classList.remove('hidden');
-  phoneAuthBox.classList.add('hidden');
-  emailAuthBox.classList.add('hidden');
-});
+tabGuest.onclick = () => {
+  tabGuest.classList.add('active'); tabPhone.classList.remove('active'); tabEmail.classList.remove('active');
+  guestAuthBox.classList.remove('hidden'); phoneAuthBox.classList.add('hidden'); emailAuthBox.classList.add('hidden');
+};
 
-// Phone Auth
-document.getElementById('sendOtpBtn').addEventListener('click', async () => {
+document.getElementById('sendOtpBtn').onclick = async () => {
   const phone = document.getElementById('loginPhoneInput').value.trim();
-  const statusElem = document.getElementById('phoneValidateStatus');
-  if (!phone) return alert('Please enter your mobile number.');
+  if (!phone) return alert('Enter phone number');
 
-  statusElem.innerText = 'Validating carrier & region...';
   try {
     const res = await fetch(`${API_BASE}/auth/phone/send-otp`, {
       method: 'POST',
@@ -564,26 +651,16 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
       body: JSON.stringify({ phone })
     });
     const data = await res.json();
-
     if (res.ok) {
       pendingAuthContact = data.formattedNumber || phone;
-      statusElem.innerText = `✓ Indian Mobile Verified (${pendingAuthContact})`;
       document.getElementById('phoneStep1').classList.add('hidden');
       document.getElementById('phoneStep2').classList.remove('hidden');
+      alert(data.message || 'OTP dispatched!');
+    } else alert(data.error);
+  } catch (e) { alert('Server error'); }
+};
 
-      if (data.demoOtp) {
-        alert(`Verification code sent! (Dev Console Code: ${data.demoOtp})`);
-      }
-    } else {
-      statusElem.innerText = 'Validation failed';
-      alert(data.error || 'Failed to send OTP');
-    }
-  } catch (err) {
-    alert('Server connection error.');
-  }
-});
-
-document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
+document.getElementById('verifyOtpBtn').onclick = async () => {
   const otp = document.getElementById('loginOtpInput').value.trim();
   const name = document.getElementById('loginNameInput').value.trim();
 
@@ -595,19 +672,14 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
     });
     const data = await res.json();
     if (data.token) completeAuth(data.token, data.user);
-    else alert(data.error || 'Invalid OTP');
-  } catch (e) {
-    alert('Verification failed.');
-  }
-});
+    else alert(data.error || 'Verification failed');
+  } catch (e) { alert('Verification error'); }
+};
 
-// Email Auth
-document.getElementById('sendEmailOtpBtn').addEventListener('click', async () => {
+document.getElementById('sendEmailOtpBtn').onclick = async () => {
   const email = document.getElementById('loginEmailInput').value.trim();
-  const statusElem = document.getElementById('emailValidateStatus');
-  if (!email) return alert('Please enter your email.');
+  if (!email) return alert('Enter email');
 
-  statusElem.innerText = 'Checking mail server & MX records...';
   try {
     const res = await fetch(`${API_BASE}/auth/email/send-otp`, {
       method: 'POST',
@@ -615,26 +687,16 @@ document.getElementById('sendEmailOtpBtn').addEventListener('click', async () =>
       body: JSON.stringify({ email })
     });
     const data = await res.json();
-
     if (res.ok) {
       pendingAuthContact = email;
-      statusElem.innerText = '✓ Valid Mail Server Confirmed';
       document.getElementById('emailStep1').classList.add('hidden');
       document.getElementById('emailStep2').classList.remove('hidden');
+      alert(data.message || 'Code sent!');
+    } else alert(data.error);
+  } catch (e) { alert('Server error'); }
+};
 
-      if (data.demoOtp) {
-        alert(`Verification code sent! (Dev Console Code: ${data.demoOtp})`);
-      }
-    } else {
-      statusElem.innerText = 'Invalid email';
-      alert(data.error || 'Failed to verify email');
-    }
-  } catch (err) {
-    alert('Server connection error.');
-  }
-});
-
-document.getElementById('verifyEmailOtpBtn').addEventListener('click', async () => {
+document.getElementById('verifyEmailOtpBtn').onclick = async () => {
   const otp = document.getElementById('loginEmailOtpInput').value.trim();
   const name = document.getElementById('loginEmailNameInput').value.trim();
 
@@ -646,106 +708,28 @@ document.getElementById('verifyEmailOtpBtn').addEventListener('click', async () 
     });
     const data = await res.json();
     if (data.token) completeAuth(data.token, data.user);
-    else alert(data.error || 'Invalid Code');
-  } catch (e) {
-    alert('Verification failed.');
-  }
-});
+    else alert(data.error || 'Verification failed');
+  } catch (e) { alert('Verification error'); }
+};
 
-// Guest Auth
-document.getElementById('guestLoginBtn').addEventListener('click', async () => {
+document.getElementById('guestLoginBtn').onclick = async () => {
   try {
     const res = await fetch(`${API_BASE}/auth/guest`, { method: 'POST' });
     const data = await res.json();
     if (data.token) completeAuth(data.token, data.user);
-  } catch (e) {
-    alert('Guest login failed.');
-  }
-});
+  } catch (e) { alert('Guest login error'); }
+};
 
-// Simulated Google Flow
-document.getElementById('simulatedGoogleBtn').addEventListener('click', async () => {
-  try {
-    const res = await fetch(`${API_BASE}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'musician.artist@gmail.com',
-        name: 'Dev Hendrix',
-        picture: ''
-      })
-    });
-    const data = await res.json();
-    if (data.token) completeAuth(data.token, data.user);
-  } catch (e) {
-    alert('Google login failed.');
-  }
-});
-
-function initGoogleAuth() {
-  if (window.google) {
-    google.accounts.id.initialize({
-      client_id: "your_google_client_id_here.apps.googleusercontent.com",
-      callback: async (response) => {
-        const res = await fetch(`${API_BASE}/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: response.credential })
-        });
-        const data = await res.json();
-        if (data.token) completeAuth(data.token, data.user);
-      }
-    });
-
-    google.accounts.id.renderButton(
-      document.getElementById('googleOneTapBtn'),
-      { theme: 'outline', size: 'large', width: 340 }
-    );
-  }
-}
-
-function completeAuth(jwtToken, user) {
-  token = jwtToken;
-  currentUser = user;
-  localStorage.setItem('jam_auth_token', jwtToken);
-  localStorage.setItem('jam_auth_user', JSON.stringify(user));
-  closeModals();
-  updateAuthUI();
-  fetchJamsFromBackend();
-}
-
-function updateAuthUI() {
-  if (token && currentUser) {
-    unauthControls.classList.add('hidden');
-    authControls.classList.remove('hidden');
-    navUserName.innerText = currentUser.name || 'Artist';
-    avatarInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
-  } else {
-    unauthControls.classList.remove('hidden');
-    authControls.classList.add('hidden');
-  }
-}
-
-logoutBtn.addEventListener('click', () => {
-  localStorage.removeItem('jam_auth_token');
-  localStorage.removeItem('jam_auth_user');
-  token = null;
-  currentUser = null;
-  updateAuthUI();
-  fetchJamsFromBackend();
-});
-
-// --- 7. Modals & UI Triggers ---
-window.openModal = (id) => document.getElementById(id).classList.remove('hidden');
+// Modal Utility
+window.openModal = (id) => {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+};
 
 window.closeModals = () => {
-  authModal.classList.add('hidden');
-  hostModal.classList.add('hidden');
-  reviewModal.classList.add('hidden');
-  locationModal.classList.add('hidden');
-  contactModal.classList.add('hidden');
-
-  // Reset multi-step forms
+  [authModal, hostModal, reviewModal, locationModal, contactModal, profileModal].forEach(m => {
+    if (m) m.classList.add('hidden');
+  });
   document.getElementById('phoneStep1').classList.remove('hidden');
   document.getElementById('phoneStep2').classList.add('hidden');
   document.getElementById('emailStep1').classList.remove('hidden');
@@ -753,97 +737,79 @@ window.closeModals = () => {
   locSuggestions.classList.add('hidden');
 };
 
-locationSelectorBtn.addEventListener('click', () => openModal('locationModal'));
-btnPickGPS.addEventListener('click', setLocationToCurrentGPS);
-mapRecenterBtn.addEventListener('click', setLocationToCurrentGPS);
-btnSearchLocation.addEventListener('click', handleManualLocationSearch);
-manualLocInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') handleManualLocationSearch();
-});
-
-openLoginModalBtn.addEventListener('click', () => openModal('authModal'));
-openHostBtn.addEventListener('click', () => {
+locationSelectorBtn.onclick = () => openModal('locationModal');
+btnPickGPS.onclick = setLocationToCurrentGPS;
+mapRecenterBtn.onclick = setLocationToCurrentGPS;
+btnSearchLocation.onclick = handleManualLocationSearch;
+openLoginModalBtn.onclick = () => openModal('authModal');
+openHostBtn.onclick = () => {
   document.getElementById('hostCoords').value = `${browsingPosition.lat.toFixed(5)}, ${browsingPosition.lng.toFixed(5)}`;
   fetchReverseGeocode(browsingPosition.lat, browsingPosition.lng, 'hostLocationName');
-
   const now = new Date();
   now.setHours(now.getHours() + 1, 0, 0, 0);
   document.getElementById('hostStartTime').value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   now.setHours(now.getHours() + 3);
   document.getElementById('hostEndTime').value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-
   openModal('hostModal');
-});
+};
 
-// Category Rail
 document.querySelectorAll('.rail-item').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.onclick = () => {
     document.querySelectorAll('.rail-item').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeVibe = btn.dataset.vibe;
     fetchJamsFromBackend();
-  });
+  };
 });
 
-// Radius & Sort
-radiusFilterSelect.addEventListener('change', (e) => {
+radiusFilterSelect.onchange = (e) => {
   activeRadiusKm = parseInt(e.target.value, 10);
   renderRadius();
   fetchJamsFromBackend();
-});
+};
 
-sortFilterSelect.addEventListener('change', (e) => {
+sortFilterSelect.onchange = (e) => {
   currentSort = e.target.value;
   fetchJamsFromBackend();
-});
+};
 
-// Search Input (Debounced)
 let searchTimeout;
-mainSearchInput.addEventListener('input', (e) => {
+mainSearchInput.oninput = (e) => {
   clearTimeout(searchTimeout);
   searchQuery = e.target.value.trim();
   searchClearBtn.classList.toggle('hidden', !searchQuery);
   searchTimeout = setTimeout(fetchJamsFromBackend, 350);
-});
+};
 
-searchClearBtn.addEventListener('click', () => {
+searchClearBtn.onclick = () => {
   mainSearchInput.value = '';
   searchQuery = '';
   searchClearBtn.classList.add('hidden');
   fetchJamsFromBackend();
-});
+};
 
-// Mobile Split Screen Toggles
 const contentWrapper = document.querySelector('.content-wrapper');
-document.getElementById('btnShowList').addEventListener('click', (e) => {
+document.getElementById('btnShowList').onclick = (e) => {
   document.getElementById('btnShowMap').classList.remove('active');
   e.target.classList.add('active');
   contentWrapper.classList.remove('show-map');
-});
+};
 
-document.getElementById('btnShowMap').addEventListener('click', (e) => {
+document.getElementById('btnShowMap').onclick = (e) => {
   document.getElementById('btnShowList').classList.remove('active');
   e.target.classList.add('active');
   contentWrapper.classList.add('show-map');
   setTimeout(() => map.invalidateSize(), 200);
-});
+};
 
-// XSS Prevention Utility
 function escapeHtml(str) {
   if (!str) return '';
-  return String(str).replace(/[&<>"']/g, m => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  })[m]);
+  return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
 }
 
-// --- Initial Boot ---
 window.addEventListener('DOMContentLoaded', () => {
   initMap();
-  updateAuthUI();
+  verifyActiveSession();
   setLocationToCurrentGPS();
-  setTimeout(initGoogleAuth, 1000);
+  setTimeout(initGoogleAuth, 400);
 });

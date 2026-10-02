@@ -182,7 +182,7 @@
 
       <div class="divider-text"><span>OR CONTINUE WITH</span></div>
 
-      <!-- Segmented Navigation Switcher -->
+      <!-- Clean Segmented Navigation Switcher -->
       <div class="auth-tabs-segmented" role="tablist">
         <button class="seg-tab-btn active" id="tabPhone" role="tab" aria-selected="true" aria-controls="phoneAuthBox">Mobile</button>
         <button class="seg-tab-btn" id="tabEmail" role="tab" aria-selected="false" aria-controls="emailAuthBox">Email</button>
@@ -392,69 +392,135 @@
     </div>
   </div>
 
-  <!-- 6. Artist Profile & Settings Center Modal -->
+  <!-- 6. Redesigned Artist Profile & Studio Modal -->
   <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
-    <div class="modal-card">
+    <div class="modal-card modal-profile-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
       
-      <div class="profile-header-card">
-        <div class="profile-avatar-large-wrapper">
-          <img id="profileLargeAvatar" class="avatar-large hidden" src="" alt="User Avatar" />
-          <div id="profileLargeInitial" class="avatar-large-fallback">U</div>
+      <!-- Soundstage Hero Banner -->
+      <div class="profile-hero-banner">
+        <div class="banner-gradient-pattern"></div>
+        <div class="profile-avatar-super-wrapper">
+          <img id="profileLargeAvatar" class="avatar-super hidden" src="" alt="User Avatar" />
+          <div id="profileLargeInitial" class="avatar-super-fallback">U</div>
+          <span class="avatar-jam-pulse-indicator" id="avatarPulseDot" title="Live Jam Status"></span>
         </div>
-        <h3 id="profileNameDisplay">Artist Name</h3>
-        <p id="profileEmailDisplay" class="profile-subtext">user@email.com</p>
-        <span id="profileRoleBadge" class="badge-role">Guitarist</span>
       </div>
 
-      <div class="profile-sections">
-        <div class="form-group">
-          <label for="editArtistName">Artist / Display Name</label>
-          <input type="text" id="editArtistName" placeholder="Your name or band handle" />
-        </div>
+      <div class="profile-body-content">
+        <!-- Identity Header -->
+        <div class="profile-identity-center">
+          <div class="identity-header-row">
+            <h3 id="profileNameDisplay">Artist Name</h3>
+            <span id="profileRoleBadge" class="badge-role-glow">🎸 Guitarist</span>
+          </div>
+          <p id="profileEmailDisplay" class="profile-handle-subtext">artist@jampulse.com</p>
 
-        <div class="form-group">
-          <label for="editArtistRole">Primary Role</label>
-          <select id="editArtistRole">
-            <option value="Guitarist">Guitarist</option>
-            <option value="Vocalist">Vocalist</option>
-            <option value="Drummer/Percussion">Drummer / Percussion</option>
-            <option value="Bassist">Bassist</option>
-            <option value="Keys">Keys / Piano</option>
-            <option value="Musician">General Musician</option>
-            <option value="Listener/Fan">Listener / Fan</option>
-          </select>
-        </div>
-
-        <!-- Multi-Option Selection Grid for Skills/Instruments -->
-        <div class="form-group">
-          <label>Skills & Instruments (Select Multiple)</label>
-          <div class="instruments-multi-grid" id="instrumentsMultiSelector">
-            <label class="chip-checkbox"><input type="checkbox" value="Vocals"><span>🎤 Vocals</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Acoustic Guitar"><span>🎸 Acoustic</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Electric Guitar"><span>⚡ Electric</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Bass"><span>🎻 Bass</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Drums/Cajon"><span>🥁 Drums / Cajon</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Keyboard/Synth"><span>🎹 Keyboards</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Flute/Wind"><span>🪈 Flute</span></label>
-            <label class="chip-checkbox"><input type="checkbox" value="Production"><span>🎧 Production</span></label>
+          <!-- Interactive Jam Status Switcher -->
+          <div class="jam-status-switcher" id="statusSwitcher">
+            <button type="button" class="status-pill-opt active" data-status="ready">
+              <span class="dot green"></span> Open to Jam
+            </button>
+            <button type="button" class="status-pill-opt" data-status="studio">
+              <span class="dot orange"></span> In Studio
+            </button>
+            <button type="button" class="status-pill-opt" data-status="vibing">
+              <span class="dot purple"></span> Just Vibing
+            </button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="editArtistBio">Musical Bio</label>
-          <textarea id="editArtistBio" rows="2" placeholder="Tell nearby jammers what styles and genres you play..."></textarea>
+        <!-- Musician Stats Grid -->
+        <div class="artist-stats-grid">
+          <div class="stat-card">
+            <span class="stat-num" id="statJamsCount">1</span>
+            <span class="stat-label">Jams Joined</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statCirclesHosted">0</span>
+            <span class="stat-label">Hosted</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statVibeRating">5.0 ★</span>
+            <span class="stat-label">Harmony Rep</span>
+          </div>
         </div>
 
-        <button class="btn btn-brand btn-block mt-3" id="saveProfileBtn" type="button">Save Profile Details</button>
-      </div>
+        <!-- Editor Controls -->
+        <div class="profile-editor-sections">
+          <div class="form-group">
+            <label for="editArtistName">Display / Stage Handle</label>
+            <div class="input-with-glyph">
+              <span class="input-glyph">🎵</span>
+              <input type="text" id="editArtistName" placeholder="Stage or band handle..." />
+            </div>
+          </div>
 
-      <hr class="divider-line" />
+          <!-- Interactive Visual Role Selector Cards -->
+          <div class="form-group">
+            <label>Primary Role (Tap to select)</label>
+            <div class="visual-role-grid" id="visualRoleGrid">
+              <div class="role-tile active" data-role="Guitarist">
+                <span class="role-glyph">🎸</span>
+                <span class="role-title">Guitarist</span>
+              </div>
+              <div class="role-tile" data-role="Vocalist">
+                <span class="role-glyph">🎙️</span>
+                <span class="role-title">Vocalist</span>
+              </div>
+              <div class="role-tile" data-role="Drummer/Percussion">
+                <span class="role-glyph">🥁</span>
+                <span class="role-title">Drums</span>
+              </div>
+              <div class="role-tile" data-role="Bassist">
+                <span class="role-glyph">🎻</span>
+                <span class="role-title">Bassist</span>
+              </div>
+              <div class="role-tile" data-role="Keys">
+                <span class="role-glyph">🎹</span>
+                <span class="role-title">Keys</span>
+              </div>
+              <div class="role-tile" data-role="Musician">
+                <span class="role-glyph">🎧</span>
+                <span class="role-title">Producer</span>
+              </div>
+            </div>
+            <input type="hidden" id="editArtistRole" value="Guitarist" />
+          </div>
 
-      <div class="settings-actions-stack">
-        <button class="btn btn-outline btn-block text-danger" id="drawerLogoutBtn" type="button">
-          🚪 Sign Out of JamPulse
-        </button>
+          <!-- Multi-Option Instrument Chips Grid -->
+          <div class="form-group">
+            <label>Gear & Instruments in your bag</label>
+            <div class="instruments-multi-grid" id="instrumentsMultiSelector">
+              <label class="chip-checkbox"><input type="checkbox" value="Vocals"><span>🎤 Lead Vocals</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Acoustic Guitar"><span>🪕 Acoustic Guitar</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Electric Guitar"><span>⚡ Electric Guitar</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Bass"><span>🎻 Bass Guitar</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Drums/Cajon"><span>🥁 Cajon / Drums</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Keyboard/Synth"><span>🎹 Synth / Keys</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Flute/Wind"><span>🪈 Flute / Sax</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Production"><span>🎛️ Beatmaker / DJ</span></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editArtistBio">Musical Bio</label>
+            <textarea id="editArtistBio" rows="2" placeholder="Tell nearby jammers about your favorite tunes, style, and gear..."></textarea>
+          </div>
+
+          <button class="btn btn-brand btn-block btn-save-pulse mt-2" id="saveProfileBtn" type="button">
+            ✨ Save Profile Details
+          </button>
+        </div>
+
+        <div class="profile-footer-stack mt-3">
+          <button class="btn btn-subtle btn-block" id="shareProfileCardBtn" type="button">
+            🔗 Copy Artist Card Link
+          </button>
+          <button class="btn btn-outline btn-block text-danger" id="drawerLogoutBtn" type="button">
+            🚪 Sign Out of JamPulse
+          </button>
+        </div>
       </div>
     </div>
   </div>
