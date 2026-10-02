@@ -6,6 +6,9 @@
 
 const API_BASE = 'https://jampulse.onrender.com/api';
 
+// Optional: Put your Google Cloud OAuth Client ID here when ready for live Google OAuth
+const GOOGLE_CLIENT_ID = '';
+
 // --- State Management ---
 let map;
 let userLocMarker = null;
@@ -211,7 +214,7 @@ async function fetchJamsFromBackend() {
     jamsFeedContainer.innerHTML = `
       <div style="background:#fee2e2;color:#991b1b;padding:16px;border-radius:12px;font-size:0.9rem">
         ⚠️ <strong>Backend Not Connected</strong><br>
-        Make sure the backend is running in your terminal on <strong>https://jampulse.onrender.com/api</strong>.
+        Make sure the backend is running on <strong>https://jampulse.onrender.com/api</strong>.
       </div>
     `;
     resultsCount.innerText = 'Server offline';
@@ -667,47 +670,70 @@ document.getElementById('guestLoginBtn').addEventListener('click', async () => {
   }
 });
 
-// Simulated Google Flow
-document.getElementById('simulatedGoogleBtn').addEventListener('click', async () => {
-  try {
-    const res = await fetch(`${API_BASE}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'musician.artist@gmail.com',
-        name: 'Dev Hendrix',
-        picture: ''
-      })
-    });
-    const data = await res.json();
-    if (data.token) completeAuth(data.token, data.user);
-  } catch (e) {
-    alert('Google login failed.');
-  }
-});
-
-function initGoogleAuth() {
-  if (window.google) {
-    google.accounts.id.initialize({
-      client_id: "your_google_client_id_here.apps.googleusercontent.com",
-      callback: async (response) => {
-        const res = await fetch(`${API_BASE}/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: response.credential })
-        });
-        const data = await res.json();
-        if (data.token) completeAuth(data.token, data.user);
-      }
-    });
-
-    const googleBtnContainer = document.getElementById('googleOneTapBtn');
-    if (googleBtnContainer) {
-      google.accounts.id.renderButton(
-        googleBtnContainer,
-        { theme: 'outline', size: 'large', width: 340 }
-      );
+// Google Button Click (Direct fallback demo or live OAuth)
+const simulatedGoogleBtn = document.getElementById('simulatedGoogleBtn');
+if (simulatedGoogleBtn) {
+  simulatedGoogleBtn.addEventListener('click', async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'musician.artist@gmail.com',
+          name: 'Demo Musician',
+          picture: ''
+        })
+      });
+      const data = await res.json();
+      if (data.token) completeAuth(data.token, data.user);
+    } catch (e) {
+      alert('Google login failed.');
     }
+  });
+}
+
+// Google Identity Services Initializer
+function initGoogleAuth() {
+  const googleBtnContainer = document.getElementById('googleOneTapBtn');
+  const customGoogleBtn = document.getElementById('simulatedGoogleBtn');
+
+  // If a real client ID is configured and Google's script loaded
+  if (window.google && GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID.trim() !== '') {
+    try {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          const res = await fetch(`${API_BASE}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+          });
+          const data = await res.json();
+          if (data.token) completeAuth(data.token, data.user);
+        }
+      });
+
+      if (googleBtnContainer) {
+        google.accounts.id.renderButton(googleBtnContainer, {
+          theme: 'outline',
+          size: 'large',
+          width: 340,
+          text: 'continue_with'
+        });
+        if (customGoogleBtn) customGoogleBtn.classList.add('hidden');
+      }
+      return;
+    } catch (err) {
+      console.warn('Real Google OAuth failed to mount, defaulting to direct action:', err);
+    }
+  }
+
+  // Default: make sure the custom Google button is visible and active
+  if (customGoogleBtn) {
+    customGoogleBtn.classList.remove('hidden');
+  }
+  if (googleBtnContainer) {
+    googleBtnContainer.innerHTML = '';
   }
 }
 
@@ -850,5 +876,5 @@ window.addEventListener('DOMContentLoaded', () => {
   initMap();
   updateAuthUI();
   setLocationToCurrentGPS();
-  setTimeout(initGoogleAuth, 1000);
+  setTimeout(initGoogleAuth, 400);
 });
