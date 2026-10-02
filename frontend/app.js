@@ -65,7 +65,6 @@ function initMap() {
 
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  // Click on map to pick location coordinates for hosting
   map.on('click', async (e) => {
     const hostCoords = document.getElementById('hostCoords');
     if (hostCoords && !hostModal.classList.contains('hidden')) {
@@ -98,7 +97,7 @@ function renderRadius() {
   }).addTo(map);
 }
 
-// Reverse Geocode (Coordinates -> Human Address)
+// Reverse Geocode
 async function fetchReverseGeocode(lat, lng, targetInputId = null) {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
@@ -553,7 +552,7 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   const statusElem = document.getElementById('phoneValidateStatus');
   if (!phone) return alert('Please enter your mobile number.');
 
-  statusElem.innerText = 'Validating carrier & region...';
+  statusElem.innerText = 'Connecting to server...';
   try {
     const res = await fetch(`${API_BASE}/auth/phone/send-otp`, {
       method: 'POST',
@@ -568,14 +567,17 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
       document.getElementById('phoneStep1').classList.add('hidden');
       document.getElementById('phoneStep2').classList.remove('hidden');
 
-      // Secure notification: does not expose the OTP
-      alert(data.message || 'Verification code sent! Please check your messages.');
+      if (data.isDevMode) {
+        alert(`${data.message}\n\n💡 Dev Mode Tip: Check Render Logs or use test PIN 999999.`);
+      } else {
+        alert(data.message || 'Verification code sent to your phone!');
+      }
     } else {
       statusElem.innerText = 'Validation failed';
       alert(data.error || 'Failed to send OTP');
     }
   } catch (err) {
-    alert('Server connection error.');
+    alert('Server connection error. Please try again.');
   }
 });
 
@@ -605,7 +607,7 @@ document.getElementById('sendEmailOtpBtn').addEventListener('click', async () =>
   const statusElem = document.getElementById('emailValidateStatus');
   if (!email) return alert('Please enter your email.');
 
-  statusElem.innerText = 'Checking mail server & MX records...';
+  statusElem.innerText = 'Connecting to mail service...';
   try {
     const res = await fetch(`${API_BASE}/auth/email/send-otp`, {
       method: 'POST',
@@ -616,14 +618,17 @@ document.getElementById('sendEmailOtpBtn').addEventListener('click', async () =>
 
     if (res.ok) {
       pendingAuthContact = email;
-      statusElem.innerText = '✓ Valid Mail Server Confirmed';
+      statusElem.innerText = '✓ Mail Sent';
       document.getElementById('emailStep1').classList.add('hidden');
       document.getElementById('emailStep2').classList.remove('hidden');
 
-      // Secure notification: does not expose the OTP
-      alert(data.message || 'Verification code sent to your email.');
+      if (data.isDevMode) {
+        alert(`${data.message}\n\n💡 Tip: Use test PIN 999999 or check Render logs.`);
+      } else {
+        alert(data.message || 'Verification code sent to your email.');
+      }
     } else {
-      statusElem.innerText = 'Invalid email';
+      statusElem.innerText = 'Delivery failed';
       alert(data.error || 'Failed to verify email');
     }
   } catch (err) {
@@ -829,7 +834,6 @@ document.getElementById('btnShowMap').addEventListener('click', (e) => {
   setTimeout(() => map.invalidateSize(), 200);
 });
 
-// XSS Prevention Utility
 function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/[&<>"']/g, m => ({
