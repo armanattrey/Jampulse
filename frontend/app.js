@@ -6,16 +6,15 @@
 
 const API_BASE = 'https://jampulse.onrender.com/api';
 
-// Paste your Google Cloud Web OAuth Client ID here
-// Example: "799480173663-xxxxxxxxxxxx.apps.googleusercontent.com"
-const GOOGLE_CLIENT_ID = '799480173663-j8k3cve5k9q88b9kldu1i0d90p19j95d.apps.googleusercontent.com';
+// Live Google Cloud Web OAuth Client ID
+const GOOGLE_CLIENT_ID = '326107511624-5h1huttdikntqiot9jig0slaccgdcjj2.apps.googleusercontent.com';
 
 // --- State Management ---
 let map;
 let userLocMarker = null;
 let radiusCircle = null;
 let currentMarkers = [];
-let browsingPosition = { lat: 28.4595, lng: 77.0266 }; // Gurugram / Delhi NCR Center
+let browsingPosition = { lat: 28.4595, lng: 77.0266 }; // Gurugram / Delhi NCR Center default
 let activeRadiusKm = 25;
 let activeVibe = 'All';
 let currentSort = 'distance';
@@ -96,14 +95,14 @@ function initGoogleAuth() {
   const btnLabel = document.getElementById('googleBtnLabel');
   if (!triggerBtn) return;
 
-  if (window.google && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('placeholder')) {
+  if (window.google?.accounts?.oauth2 && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('placeholder')) {
     try {
       googleTokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: 'openid email profile',
         callback: async (tokenResponse) => {
           if (tokenResponse.error !== undefined) {
-            alert('Google authentication encountered an error.');
+            alert('Google authentication encountered an issue. Please try again.');
             return;
           }
 
@@ -137,12 +136,20 @@ function initGoogleAuth() {
       };
       return;
     } catch (gErr) {
-      console.warn('Google Identity initialization failed:', gErr);
+      console.warn('Google Identity initialization retry needed:', gErr);
     }
   }
 
-  // Fallback direct login if Google Client ID is not populated
+  // Graceful fallback if Google GIS is still initializing
   triggerBtn.onclick = async () => {
+    if (window.google?.accounts?.oauth2) {
+      initGoogleAuth();
+      if (googleTokenClient) {
+        googleTokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      }
+    }
+
     const emailPrompt = prompt("Enter your personal email to test authenticated profile:", "musician@gmail.com");
     if (!emailPrompt) return;
 
@@ -200,7 +207,7 @@ window.openProfileDrawer = () => {
     largeInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
   }
 
-  // Multi-option instruments checkboxes sync
+  // Sync multi-option instrument checkboxes
   const checkboxes = document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]');
   const userInstruments = currentUser.instruments || [];
   checkboxes.forEach(cb => {
@@ -219,7 +226,7 @@ if (saveProfileBtn) {
     const updatedRole = document.getElementById('editArtistRole')?.value;
     const updatedBio = document.getElementById('editArtistBio')?.value.trim();
 
-    // Collect multiple options
+    // Collect all checked instruments
     const selectedInstruments = [];
     document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]:checked').forEach(cb => {
       selectedInstruments.push(cb.value);
