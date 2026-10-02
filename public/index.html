@@ -1,141 +1,549 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Minimal Profile App</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="JamPulse — Discover and host live music circles near you." />
+  <title>JamPulse — Live Music Circles Near You</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body>
 
-  <!-- Minimal Viewport: Avatar Only -->
-  <div class="relative">
-    <button id="avatarBtn" class="w-20 h-20 rounded-full border-2 border-indigo-500 overflow-hidden shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all focus:outline-none">
-      <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80" alt="Avatar" class="w-full h-full object-cover">
-    </button>
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">🎸</span>
+        <span class="brand-text">Jam<strong>Pulse</strong></span>
+      </div>
 
-    <!-- 5-Option Dropdown -->
-    <div id="dropdownMenu" class="hidden absolute top-24 -left-16 w-52 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-10 flex flex-col space-y-1">
-      <button onclick="openModal()" class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition">1. Profile Details</button>
-      <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition text-slate-400">2. Security</button>
-      <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition text-slate-400">3. Preferences</button>
-      <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition text-slate-400">4. Help & Support</button>
-      <hr class="border-slate-800 my-1">
-      <button onclick="handleLogout()" class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-red-500/10 text-red-400 transition font-medium">5. Log Out</button>
+      <button class="location-pill" id="locationSelectorBtn" title="Change Location" aria-label="Change current location">
+        <span class="loc-icon" aria-hidden="true">📍</span>
+        <div class="loc-text">
+          <span class="loc-label">Browsing Near</span>
+          <span class="loc-city" id="navCityText">Detecting...</span>
+        </div>
+        <span class="chevron" aria-hidden="true">▼</span>
+      </button>
+    </div>
+
+    <div class="search-container">
+      <span class="search-glyph" aria-hidden="true">🔍</span>
+      <input type="text" id="mainSearchInput" placeholder="Search by band, venue, instrument, or genre..." aria-label="Search for jam sessions" />
+      <button class="search-clear-btn hidden" id="searchClearBtn" aria-label="Clear search">&times;</button>
+    </div>
+
+    <div class="header-right">
+      <button class="btn btn-brand" id="openHostBtn">+ Host Jam</button>
+      
+      <div id="unauthControls">
+        <button class="btn btn-subtle" id="openLoginModalBtn">Sign In</button>
+      </div>
+
+      <div id="authControls" class="avatar-menu-container hidden">
+        <button id="avatarTriggerBtn" class="avatar-round-btn" aria-haspopup="true" aria-expanded="false" title="Account Menu">
+          <img id="navAvatarImg" class="user-avatar-img hidden" alt="Avatar" />
+          <div class="user-avatar" id="avatarInitial" aria-hidden="true">U</div>
+        </button>
+
+        <div id="avatarDropdownMenu" class="avatar-dropdown-menu hidden" role="menu">
+          <button class="dropdown-item" onclick="openProfileDrawer()" role="menuitem">
+            <span class="item-icon">👤</span> 1. Profile Details
+          </button>
+          <button class="dropdown-item" onclick="alert('Account Security settings coming soon!')" role="menuitem">
+            <span class="item-icon">🔒</span> 2. Security
+          </button>
+          <button class="dropdown-item" onclick="alert('Preferences coming soon!')" role="menuitem">
+            <span class="item-icon">⚙️</span> 3. Preferences
+          </button>
+          <button class="dropdown-item" onclick="alert('Need help? Email support@jampulse.com')" role="menuitem">
+            <span class="item-icon">💬</span> 4. Help & Support
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item text-danger-item" onclick="logout()" role="menuitem">
+            <span class="item-icon">🚪</span> 5. Log Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="category-rail" aria-label="Music categories">
+    <div class="rail-inner">
+      <button class="rail-item active" data-vibe="All">🔥 All Jams</button>
+      <button class="rail-item" data-vibe="Acoustic Unplugged">🪕 Acoustic</button>
+      <button class="rail-item" data-vibe="Electric Jam">⚡ Electric</button>
+      <button class="rail-item" data-vibe="Open Mic">🎙️ Open Mic</button>
+      <button class="rail-item" data-vibe="Sufi & Classical">🪘 Classical</button>
+      <button class="rail-item" data-vibe="Chill Electronic">🎧 Electronic</button>
+      <button class="rail-item" data-vibe="Jazz & Blues">🎷 Jazz</button>
+    </div>
+
+    <div class="mobile-view-toggle">
+      <button class="toggle-btn active" id="btnShowList">List</button>
+      <button class="toggle-btn" id="btnShowMap">Map</button>
+    </div>
+  </nav>
+
+  <main class="content-wrapper">
+    <section class="feed-section" id="feedSection">
+      <div class="filter-strip">
+        <div class="filter-group">
+          <label for="radiusFilterSelect">Radius:</label>
+          <select id="radiusFilterSelect">
+            <option value="5">Within 5 km</option>
+            <option value="10">Within 10 km</option>
+            <option value="25" selected>Within 25 km</option>
+            <option value="50">Within 50 km</option>
+            <option value="100">Within 100 km</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sortFilterSelect">Sort:</label>
+          <select id="sortFilterSelect">
+            <option value="distance" selected>Distance: Nearest</option>
+            <option value="rating">Top Rated</option>
+            <option value="timing">Happening Soon</option>
+          </select>
+        </div>
+
+        <span class="results-count" id="resultsCount" aria-live="polite">Scanning nearby jams...</span>
+      </div>
+
+      <div class="jams-grid" id="jamsFeedContainer"></div>
+    </section>
+
+    <section class="map-section" id="mapSection">
+      <div id="leafletMap"></div>
+      <button class="map-recenter-btn" id="mapRecenterBtn" title="Switch to current GPS location" aria-label="Recenter map to current location">🎯</button>
+    </section>
+  </main>
+
+  <!-- Location Selector Modal -->
+  <div class="modal-backdrop hidden" id="locationModal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3>Choose Your Location</h3>
+        <p>Pick how you want to discover jam sessions around you.</p>
+      </div>
+
+      <button class="loc-option-card" id="btnPickGPS" type="button">
+        <div class="loc-option-icon" aria-hidden="true">🎯</div>
+        <div class="loc-option-info">
+          <strong>Use Current GPS Location</strong>
+          <span>Automatically detect where you are right now</span>
+        </div>
+      </button>
+
+      <div class="divider-text"><span>OR SEARCH A SPECIFIC AREA</span></div>
+
+      <div class="form-group">
+        <label for="manualLocInput">City, Neighborhood, or Landmark</label>
+        <div class="search-input-box">
+          <input type="text" id="manualLocInput" placeholder="e.g. Connaught Place, Bandra, Indiranagar, Cyber Hub..." />
+          <button class="btn btn-brand btn-sm" id="btnSearchLocation" type="button">Search</button>
+        </div>
+      </div>
+
+      <div class="loc-suggestions hidden" id="locSuggestions"></div>
     </div>
   </div>
 
-  <!-- Profile Edit Modal -->
-  <div id="profileModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
-      <div class="flex justify-between items-center">
-        <h2 class="text-lg font-semibold text-white">Profile Details</h2>
-        <button onclick="closeModal()" class="text-slate-400 hover:text-white">&times;</button>
+  <!-- Sign In Modal -->
+  <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true">
+    <div class="modal-card auth-modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      
+      <div class="modal-header auth-header-center">
+        <div class="auth-icon-badge" aria-hidden="true">🎸</div>
+        <h3>Welcome to JamPulse</h3>
+        <p>Connect with local musicians, discover jams, or host your circle.</p>
       </div>
 
-      <!-- Name Field -->
-      <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Display Name</label>
-        <div class="flex gap-2">
-          <input id="nameInput" type="text" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
-          <button id="saveNameBtn" onclick="updateName()" class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-xs px-3.5 py-2 rounded-lg font-medium transition">Save</button>
-        </div>
-        <p id="nameNotice" class="text-xs text-slate-400"></p>
+      <div class="google-auth-box">
+        <button class="btn btn-social-google btn-block" id="googleLoginTriggerBtn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+            <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+            <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"/>
+          </svg>
+          <span id="googleBtnLabel">Continue with Google</span>
+        </button>
       </div>
 
-      <!-- Phone Field -->
-      <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Linked Phone Number</label>
-        <div class="flex gap-2">
-          <input id="phoneInput" type="tel" placeholder="+1 (555) 000-0000" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
-          <button id="savePhoneBtn" onclick="updatePhone()" class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-xs px-3.5 py-2 rounded-lg font-medium transition">Link</button>
+      <div class="divider-text"><span>OR CONTINUE WITH</span></div>
+
+      <div class="auth-tabs-segmented" role="tablist">
+        <button class="seg-tab-btn active" id="tabPhone" role="tab">Mobile</button>
+        <button class="seg-tab-btn" id="tabEmail" role="tab">Email</button>
+        <button class="seg-tab-btn" id="tabGuest" role="tab">Guest</button>
+      </div>
+
+      <div class="tab-content" id="phoneAuthBox">
+        <div id="phoneStep1">
+          <div class="form-group">
+            <label for="loginPhoneInput">Indian Mobile Number</label>
+            <div class="phone-input-combo">
+              <span class="phone-prefix-tag">🇮🇳 +91</span>
+              <input type="tel" id="loginPhoneInput" placeholder="98765 43210" maxlength="10" />
+            </div>
+            <span class="field-hint" id="phoneValidateStatus">We will send a 6-digit verification code</span>
+          </div>
+          <button class="btn btn-brand btn-block mt-3" id="sendOtpBtn" type="button">Send Verification OTP</button>
         </div>
-        <p id="phoneNotice" class="text-xs text-slate-400"></p>
+
+        <div id="phoneStep2" class="hidden">
+          <div class="form-group">
+            <label for="loginOtpInput">Enter 6-Digit SMS Code</label>
+            <input type="text" id="loginOtpInput" class="otp-input-field" placeholder="• • • • • •" maxlength="6" />
+          </div>
+          <div class="form-group mt-2">
+            <label for="loginNameInput">Your Name / Artist Handle</label>
+            <input type="text" id="loginNameInput" placeholder="e.g. Rahul Sharma" />
+          </div>
+          <button class="btn btn-brand btn-block mt-3" id="verifyOtpBtn" type="button">Verify & Enter</button>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="emailAuthBox">
+        <div id="emailStep1">
+          <div class="form-group">
+            <label for="loginEmailInput">Email Address</label>
+            <input type="email" id="loginEmailInput" placeholder="artist@domain.com" />
+            <span class="field-hint" id="emailValidateStatus">Live verification code delivered to inbox</span>
+          </div>
+          <button class="btn btn-brand btn-block mt-3" id="sendEmailOtpBtn" type="button">Send Email Code</button>
+        </div>
+
+        <div id="emailStep2" class="hidden">
+          <div class="form-group">
+            <label for="loginEmailOtpInput">Enter 6-Digit Email Code</label>
+            <input type="text" id="loginEmailOtpInput" class="otp-input-field" placeholder="• • • • • •" maxlength="6" />
+          </div>
+          <div class="form-group mt-2">
+            <label for="loginEmailNameInput">Your Name / Artist Handle</label>
+            <input type="text" id="loginEmailNameInput" placeholder="e.g. Maya Strings" />
+          </div>
+          <button class="btn btn-brand btn-block mt-3" id="verifyEmailOtpBtn" type="button">Confirm & Sign In</button>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="guestAuthBox">
+        <div class="guest-card-box">
+          <p class="guest-desc">Jump straight in as an explorer to browse jams, venues, and nearby artists without verification.</p>
+          <button class="btn btn-brand btn-block mt-3" id="guestLoginBtn" type="button">Enter as Guest Jammer</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const avatarBtn = document.getElementById('avatarBtn');
-    const dropdownMenu = document.getElementById('dropdownMenu');
-    const profileModal = document.getElementById('profileModal');
-    
-    avatarBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dropdownMenu.classList.toggle('hidden');
-    });
+  <!-- Host Jam Modal -->
+  <div class="modal-backdrop hidden" id="hostModal" role="dialog" aria-modal="true">
+    <div class="modal-card modal-large">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3>Host a Jam Session</h3>
+        <p>Broadcast your location so other vocalists, instrumentalists, and listeners can join in.</p>
+      </div>
 
-    document.addEventListener('click', () => dropdownMenu.classList.add('hidden'));
+      <form id="hostJamForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostTitle">Session Title *</label>
+            <input type="text" id="hostTitle" placeholder="e.g. Acoustic Melodies in the Garden" required />
+          </div>
+          <div class="form-group">
+            <label for="hostTeam">Host / Band Name *</label>
+            <input type="text" id="hostTeam" placeholder="e.g. The Indie Collective" required />
+          </div>
+        </div>
 
-    function openModal() {
-      dropdownMenu.classList.add('hidden');
-      profileModal.classList.remove('hidden');
-      loadUserData();
-    }
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostVibe">Music Vibe</label>
+            <select id="hostVibe">
+              <option value="Acoustic Unplugged">Acoustic Unplugged</option>
+              <option value="Electric Jam">Electric Jam</option>
+              <option value="Open Mic">Open Mic</option>
+              <option value="Sufi & Classical">Sufi & Classical</option>
+              <option value="Chill Electronic">Chill Electronic</option>
+              <option value="Jazz & Blues">Jazz & Blues</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="hostGenres">Genres (comma separated)</label>
+            <input type="text" id="hostGenres" placeholder="Folk, Bollywood, Pop, Blues" />
+          </div>
+        </div>
 
-    function closeModal() {
-      profileModal.classList.add('hidden');
-    }
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostLocationName">Venue / Spot Name *</label>
+            <input type="text" id="hostLocationName" placeholder="e.g. Leisure Valley Amphitheater" required />
+          </div>
+          <div class="form-group">
+            <label for="hostCoords">Coordinates *</label>
+            <input type="text" id="hostCoords" placeholder="28.4595, 77.0266" readonly required />
+          </div>
+        </div>
 
-    async function loadUserData() {
-      const res = await fetch('/api/user');
-      const data = await res.json();
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostStartTime">Start Time *</label>
+            <input type="datetime-local" id="hostStartTime" required />
+          </div>
+          <div class="form-group">
+            <label for="hostEndTime">End Time *</label>
+            <input type="datetime-local" id="hostEndTime" required />
+          </div>
+        </div>
 
-      const nameInput = document.getElementById('nameInput');
-      const saveNameBtn = document.getElementById('saveNameBtn');
-      const nameNotice = document.getElementById('nameNotice');
+        <div class="form-group">
+          <label for="hostInstruments">Instruments Welcome / Needed</label>
+          <input type="text" id="hostInstruments" placeholder="e.g. Cajon, Acoustic Guitar, Flute, Harmony Vocals" />
+        </div>
 
-      nameInput.value = data.name;
-      nameInput.disabled = !data.canChangeName;
-      saveNameBtn.disabled = !data.canChangeName;
-      nameNotice.textContent = data.canChangeName 
-        ? "You can change your name today (30-day lock after save)." 
-        : `Locked. Next change available in ${data.nameDaysLeft} day(s).`;
+        <div class="form-group">
+          <label for="hostDesc">Session Details</label>
+          <textarea id="hostDesc" rows="3" placeholder="Tell people what to expect, who can sing, or what gear is available..."></textarea>
+        </div>
 
-      const phoneInput = document.getElementById('phoneInput');
-      const savePhoneBtn = document.getElementById('savePhoneBtn');
-      const phoneNotice = document.getElementById('phoneNotice');
+        <div class="modal-actions">
+          <button type="button" class="btn btn-subtle" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-brand">Publish Jam Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-      phoneInput.value = data.phone || '';
-      phoneInput.disabled = !data.canChangePhone;
-      savePhoneBtn.disabled = !data.canChangePhone;
-      savePhoneBtn.textContent = data.phone ? "Update" : "Link";
-      phoneNotice.textContent = data.canChangePhone
-        ? "Phone changes trigger a 90-day cooldown."
-        : `Locked. Next change available in ${data.phoneDaysLeft} day(s).`;
-    }
+  <!-- Review Modal -->
+  <div class="modal-backdrop hidden" id="reviewModal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="reviewTitleHeader">Rate Jam Experience</h3>
+        <p id="reviewSubtitleHeader" class="text-brand">Band Name</p>
+      </div>
 
-    async function updateName() {
-      const val = document.getElementById('nameInput').value;
-      const res = await fetch('/api/user/name', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: val })
-      });
-      const data = await res.json();
-      if (!res.ok) alert(data.error);
-      loadUserData();
-    }
+      <input type="hidden" id="reviewJamId" />
 
-    async function updatePhone() {
-      const val = document.getElementById('phoneInput').value;
-      const res = await fetch('/api/user/phone', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: val })
-      });
-      const data = await res.json();
-      if (!res.ok) alert(data.error);
-      loadUserData();
-    }
+      <div class="star-rating-box">
+        <label>How was the vibe & harmony?</label>
+        <div class="stars-row" id="starsSelector">
+          <span class="star active" data-rating="1">★</span>
+          <span class="star active" data-rating="2">★</span>
+          <span class="star active" data-rating="3">★</span>
+          <span class="star active" data-rating="4">★</span>
+          <span class="star active" data-rating="5">★</span>
+        </div>
+        <input type="hidden" id="selectedStarValue" value="5" />
+      </div>
 
-    async function handleLogout() {
-      await fetch('/api/logout', { method: 'POST' });
-      document.body.innerHTML = `
-        <div class="text-center space-y-3">
-          <p class="text-lg text-slate-300">You have been logged out.</p>
-          <button onclick="location.reload()" class="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-medium">Log Back In</button>
-        </div>`;
-    }
-  </script>
+      <div class="form-group mt-3">
+        <label for="reviewComment">Share your experience</label>
+        <textarea id="reviewComment" rows="3" placeholder="Great acoustics, welcoming vocal circle, had a blast..."></textarea>
+      </div>
+
+      <button class="btn btn-brand btn-block mt-2" id="submitReviewBtn" type="button">Submit Feedback</button>
+
+      <div class="past-reviews-box mt-4">
+        <h4>Community Feedback</h4>
+        <div class="past-reviews-list" id="pastReviewsList">
+          <p class="empty-text">No reviews yet. Be the first to leave one!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div class="modal-backdrop hidden" id="contactModal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="contactTitleHeader">Contact Host</h3>
+        <p id="contactSubtitleHeader" class="text-brand">Jam Session Title</p>
+      </div>
+
+      <p class="contact-desc">
+        Connect with the host to ask questions, request specific songs, or confirm instrument requirements.
+      </p>
+
+      <div class="contact-options-stack">
+        <a id="whatsappContactLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">
+          💬 Message on WhatsApp
+        </a>
+        <button id="inAppContactBtn" class="btn btn-brand" type="button">
+          ✉ Send In-App Message
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Artist Profile Modal -->
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true">
+    <div class="modal-card modal-profile-card">
+      <button class="close-profile-modal-btn" onclick="closeModals()" aria-label="Close profile">&times;</button>
+      
+      <div class="profile-hero-banner">
+        <div class="banner-gradient-pattern"></div>
+        <div class="profile-avatar-super-wrapper">
+          <img id="profileLargeAvatar" class="avatar-super hidden" src="" alt="User Avatar" />
+          <div id="profileLargeInitial" class="avatar-super-fallback">U</div>
+          <span class="avatar-jam-pulse-indicator" id="avatarPulseDot" title="Live Jam Status"></span>
+        </div>
+      </div>
+
+      <div class="profile-body-content">
+        <div class="profile-identity-center">
+          <div class="identity-header-row">
+            <h3 id="profileNameDisplay">Artist Name</h3>
+            <span id="profileRoleBadge" class="badge-role-glow">⚡ Guitarist</span>
+          </div>
+          <p id="profileEmailDisplay" class="profile-handle-subtext">artist@jampulse.com</p>
+
+          <div class="jam-status-switcher" id="statusSwitcher">
+            <button type="button" class="status-pill-opt active" data-status="ready">
+              <span class="dot green"></span> Open to Jam
+            </button>
+            <button type="button" class="status-pill-opt" data-status="studio">
+              <span class="dot orange"></span> In Studio
+            </button>
+            <button type="button" class="status-pill-opt" data-status="vibing">
+              <span class="dot purple"></span> Just Vibing
+            </button>
+          </div>
+        </div>
+
+        <div class="artist-stats-grid">
+          <div class="stat-card">
+            <span class="stat-num" id="statJamsCount">1</span>
+            <span class="stat-label">Jams Joined</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statCirclesHosted">0</span>
+            <span class="stat-label">Hosted</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="statVibeRating">5.0 ★</span>
+            <span class="stat-label">Harmony Rep</span>
+          </div>
+        </div>
+
+        <div class="profile-editor-sections">
+          <!-- Display Name (30-day cooldown) -->
+          <div class="form-group">
+            <div class="label-with-meta">
+              <label for="editArtistName">Display / Stage Handle</label>
+              <span id="nameCooldownBadge" class="cooldown-tag">30-day lock</span>
+            </div>
+            <div class="input-with-glyph">
+              <span class="input-glyph">🎵</span>
+              <input type="text" id="editArtistName" placeholder="Stage or band handle..." />
+            </div>
+            <p id="nameCooldownMsg" class="cooldown-hint"></p>
+          </div>
+
+          <!-- Phone Link (90-day cooldown) -->
+          <div class="form-group">
+            <div class="label-with-meta">
+              <label for="editArtistPhone">Linked Phone Number</label>
+              <span id="phoneCooldownBadge" class="cooldown-tag">90-day lock</span>
+            </div>
+            <div class="input-with-glyph">
+              <span class="input-glyph">📱</span>
+              <input type="tel" id="editArtistPhone" placeholder="+91 9876543210" />
+            </div>
+            <p id="phoneCooldownMsg" class="cooldown-hint"></p>
+          </div>
+
+          <div class="form-group">
+            <label>Primary Role (Tap to select)</label>
+            <div class="visual-role-grid" id="visualRoleGrid">
+              <div class="role-tile active" data-role="Guitarist">
+                <span class="role-glyph">🎸</span>
+                <span class="role-title">Guitarist</span>
+              </div>
+              <div class="role-tile" data-role="Vocalist">
+                <span class="role-glyph">🎙️</span>
+                <span class="role-title">Vocalist</span>
+              </div>
+              <div class="role-tile" data-role="Drummer/Percussion">
+                <span class="role-glyph">🥁</span>
+                <span class="role-title">Drums</span>
+              </div>
+              <div class="role-tile" data-role="Bassist">
+                <span class="role-glyph">🎻</span>
+                <span class="role-title">Bassist</span>
+              </div>
+              <div class="role-tile" data-role="Keys">
+                <span class="role-glyph">🎹</span>
+                <span class="role-title">Keys</span>
+              </div>
+              <div class="role-tile" data-role="Musician">
+                <span class="role-glyph">🎧</span>
+                <span class="role-title">Producer</span>
+              </div>
+            </div>
+            <input type="hidden" id="editArtistRole" value="Guitarist" />
+          </div>
+
+          <div class="form-group">
+            <label>Gear & Instruments in your bag</label>
+            <div class="instruments-multi-grid" id="instrumentsMultiSelector">
+              <label class="chip-checkbox"><input type="checkbox" value="Vocals"><span>🎤 Lead Vocals</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Acoustic Guitar"><span>🪕 Acoustic Guitar</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Electric Guitar"><span>⚡ Electric Guitar</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Bass"><span>🎻 Bass Guitar</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Drums/Cajon"><span>🥁 Cajon / Drums</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Keyboard/Synth"><span>🎹 Synth / Keys</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Flute/Wind"><span>🪈 Flute / Sax</span></label>
+              <label class="chip-checkbox"><input type="checkbox" value="Production"><span>🎛️ Beatmaker / DJ</span></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editArtistBio">Musical Bio</label>
+            <textarea id="editArtistBio" rows="2" placeholder="Tell nearby jammers about your favorite tunes, style, and gear..."></textarea>
+          </div>
+
+          <button class="btn btn-brand btn-block btn-save-pulse mt-2" id="saveProfileBtn" type="button">
+            ✨ Save Profile Details
+          </button>
+        </div>
+
+        <div class="profile-footer-stack mt-3">
+          <button class="btn btn-subtle btn-block" id="shareProfileCardBtn" type="button">
+            🔗 Copy Artist Card Link
+          </button>
+          <button class="btn btn-outline btn-block text-danger" onclick="logout()" type="button">
+            🚪 Sign Out of JamPulse
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button 
+    type="button" 
+    class="btn-fab" 
+    id="floatingHostBtn" 
+    data-tooltip="Host a Jam Session" 
+    aria-label="Host a Jam Session"
+    onclick="document.getElementById('openHostBtn').click()"
+  >
+    🎸
+  </button>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

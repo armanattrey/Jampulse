@@ -1,20 +1,16 @@
-/**
- * JamPulse — Frontend Application Controller
- * Handles Leaflet Map interactions, Geolocation, Filters, 
- * Real-time Jam Feeds, Live Google GIS Auth, Session Persistence, and Multi-Select Profile Sync.
- */
-
 const API_BASE = 'https://jampulse.onrender.com/api';
-
-// Live Google Cloud Web OAuth Client ID
 const GOOGLE_CLIENT_ID = '326107511624-5h1huttdikntqiot9jig0slaccgdcjj2.apps.googleusercontent.com';
 
-// --- State Management ---
+const COOLDOWNS = {
+  NAME_MS: 30 * 24 * 60 * 60 * 1000,
+  PHONE_MS: 90 * 24 * 60 * 60 * 1000
+};
+
 let map;
 let userLocMarker = null;
 let radiusCircle = null;
 let currentMarkers = [];
-let browsingPosition = { lat: 28.4595, lng: 77.0266 }; // Gurugram / Delhi NCR Center default
+let browsingPosition = { lat: 28.4595, lng: 77.0266 };
 let activeRadiusKm = 25;
 let activeVibe = 'All';
 let currentSort = 'distance';
@@ -22,12 +18,10 @@ let searchQuery = '';
 let jamsData = [];
 let activeJamStatus = 'ready';
 
-// Auth State
 let token = localStorage.getItem('jam_auth_token') || null;
 let currentUser = JSON.parse(localStorage.getItem('jam_auth_user') || 'null');
 let pendingAuthContact = '';
 
-// --- DOM References ---
 const navCityText = document.getElementById('navCityText');
 const locationSelectorBtn = document.getElementById('locationSelectorBtn');
 const locationModal = document.getElementById('locationModal');
@@ -44,7 +38,6 @@ const sortFilterSelect = document.getElementById('sortFilterSelect');
 const jamsFeedContainer = document.getElementById('jamsFeedContainer');
 const resultsCount = document.getElementById('resultsCount');
 
-// Modals
 const authModal = document.getElementById('authModal');
 const hostModal = document.getElementById('hostModal');
 const reviewModal = document.getElementById('reviewModal');
@@ -55,42 +48,35 @@ const openLoginModalBtn = document.getElementById('openLoginModalBtn');
 const openHostBtn = document.getElementById('openHostBtn');
 const unauthControls = document.getElementById('unauthControls');
 const authControls = document.getElementById('authControls');
-const navUserName = document.getElementById('navUserName');
+const avatarTriggerBtn = document.getElementById('avatarTriggerBtn');
+const avatarDropdownMenu = document.getElementById('avatarDropdownMenu');
 const avatarInitial = document.getElementById('avatarInitial');
 const navAvatarImg = document.getElementById('navAvatarImg');
 
-// --- 1. Session Persistence & Live Recovery ---
 async function verifyActiveSession() {
   if (!token) {
     updateAuthUI();
     return;
   }
-
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
     if (res.ok) {
       const data = await res.json();
-      currentUser = data.user;
+      currentUser = { ...currentUser, ...data.user };
       localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
       updateAuthUI();
     } else {
       logout();
     }
   } catch (err) {
-    console.warn('Session verification fallback to cached storage:', err.message);
     updateAuthUI();
   }
 }
 
-// --- 2. Live Google OAuth 2.0 Integration ---
 let googleTokenClient = null;
-
 function initGoogleAuth() {
   const triggerBtn = document.getElementById('googleLoginTriggerBtn');
   const btnLabel = document.getElementById('googleBtnLabel');
@@ -103,27 +89,21 @@ function initGoogleAuth() {
         scope: 'openid email profile',
         callback: async (tokenResponse) => {
           if (tokenResponse.error !== undefined) {
-            alert('Google authentication encountered an issue. Please try again.');
+            alert('Google authentication error. Try again.');
             return;
           }
-
           if (btnLabel) btnLabel.innerText = 'Signing in...';
-
           try {
             const res = await fetch(`${API_BASE}/auth/google`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ accessToken: tokenResponse.access_token })
             });
-
             const data = await res.json();
-            if (data.token) {
-              completeAuth(data.token, data.user);
-            } else {
-              alert(data.error || 'Google sign-in rejected.');
-            }
+            if (data.token) completeAuth(data.token, data.user);
+            else alert(data.error || 'Google sign-in rejected.');
           } catch (fetchErr) {
-            alert('Could not complete Google authentication with server.');
+            alert('Could not connect to auth server.');
           } finally {
             if (btnLabel) btnLabel.innerText = 'Continue with Google';
           }
@@ -131,29 +111,15 @@ function initGoogleAuth() {
       });
 
       triggerBtn.onclick = () => {
-        if (googleTokenClient) {
-          googleTokenClient.requestAccessToken({ prompt: 'select_account' });
-        }
+        if (googleTokenClient) googleTokenClient.requestAccessToken({ prompt: 'select_account' });
       };
       return;
-    } catch (gErr) {
-      console.warn('Google Identity initialization retry needed:', gErr);
-    }
+    } catch (gErr) {}
   }
 
-  // Graceful fallback if Google GIS is still initializing
   triggerBtn.onclick = async () => {
-    if (window.google?.accounts?.oauth2) {
-      initGoogleAuth();
-      if (googleTokenClient) {
-        googleTokenClient.requestAccessToken({ prompt: 'select_account' });
-        return;
-      }
-    }
-
-    const emailPrompt = prompt("Enter your personal email to test authenticated profile:", "musician@gmail.com");
+    const emailPrompt = prompt("Enter email to test profile:", "musician@gmail.com");
     if (!emailPrompt) return;
-
     try {
       const res = await fetch(`${API_BASE}/auth/google`, {
         method: 'POST',
@@ -170,14 +136,14 @@ function initGoogleAuth() {
       if (data.token) completeAuth(data.token, data.user);
       else alert(data.error || 'Login rejected.');
     } catch (e) {
-      alert('Network error connecting to auth server.');
+      alert('Network error.');
     }
   };
 }
 
-// --- 3. Profile Drawer & Multi-Option Interactive Controller ---
 window.openProfileDrawer = () => {
   if (!currentUser) return;
+  closeDropdown();
 
   const nameDisp = document.getElementById('profileNameDisplay');
   const emailDisp = document.getElementById('profileEmailDisplay');
@@ -186,10 +152,13 @@ window.openProfileDrawer = () => {
   const largeInitial = document.getElementById('profileLargeInitial');
 
   const editName = document.getElementById('editArtistName');
+  const editPhone = document.getElementById('editArtistPhone');
   const editRoleHidden = document.getElementById('editArtistRole');
   const editBio = document.getElementById('editArtistBio');
 
-  // Stats Calculation
+  const nameMsg = document.getElementById('nameCooldownMsg');
+  const phoneMsg = document.getElementById('phoneCooldownMsg');
+
   const jamsJoinedCount = (jamsData || []).filter(j => j.rsvpUsers?.includes(currentUser._id)).length;
   const statJams = document.getElementById('statJamsCount');
   if (statJams) statJams.innerText = jamsJoinedCount || '1';
@@ -202,9 +171,38 @@ window.openProfileDrawer = () => {
   if (editRoleHidden) editRoleHidden.value = userRole;
 
   if (editName) editName.value = currentUser.name || '';
+  if (editPhone) editPhone.value = currentUser.phone || '';
   if (editBio) editBio.value = currentUser.bio || '';
 
-  // Avatar Image Sync
+  const now = Date.now();
+  const lastNameChange = currentUser.lastNameChange ? new Date(currentUser.lastNameChange).getTime() : 0;
+  const nameElapsed = now - lastNameChange;
+  if (lastNameChange && nameElapsed < COOLDOWNS.NAME_MS) {
+    const daysLeft = Math.ceil((COOLDOWNS.NAME_MS - nameElapsed) / (1000 * 60 * 60 * 24));
+    editName.disabled = true;
+    nameMsg.innerText = `🔒 Name locked for ${daysLeft} more day(s).`;
+    nameMsg.className = 'cooldown-hint locked';
+  } else {
+    editName.disabled = false;
+    nameMsg.innerText = `Available to edit. (30-day cooldown triggers upon save)`;
+    nameMsg.className = 'cooldown-hint';
+  }
+
+  const lastPhoneChange = currentUser.lastPhoneChange ? new Date(currentUser.lastPhoneChange).getTime() : 0;
+  const phoneElapsed = now - lastPhoneChange;
+  if (currentUser.phone && lastPhoneChange && phoneElapsed < COOLDOWNS.PHONE_MS) {
+    const daysLeft = Math.ceil((COOLDOWNS.PHONE_MS - phoneElapsed) / (1000 * 60 * 60 * 24));
+    editPhone.disabled = true;
+    phoneMsg.innerText = `🔒 Phone number locked for ${daysLeft} more day(s).`;
+    phoneMsg.className = 'cooldown-hint locked';
+  } else {
+    editPhone.disabled = false;
+    phoneMsg.innerText = currentUser.phone 
+      ? `Can be updated now. (90-day lock triggers upon update)` 
+      : `Link your phone number for session updates.`;
+    phoneMsg.className = 'cooldown-hint';
+  }
+
   if (currentUser.avatarUrl && largeImg) {
     largeImg.src = currentUser.avatarUrl;
     largeImg.classList.remove('hidden');
@@ -215,12 +213,10 @@ window.openProfileDrawer = () => {
     largeInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
   }
 
-  // Visual Role Cards Selection
   document.querySelectorAll('#visualRoleGrid .role-tile').forEach(tile => {
     tile.classList.toggle('active', tile.dataset.role === userRole);
   });
 
-  // Instruments Multi-select Checkboxes
   const userInstruments = currentUser.instruments || [];
   document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]').forEach(cb => {
     cb.checked = userInstruments.includes(cb.value);
@@ -229,7 +225,6 @@ window.openProfileDrawer = () => {
   openModal('profileModal');
 };
 
-// Interactive Role Tiles Click Handler
 document.querySelectorAll('#visualRoleGrid .role-tile').forEach(tile => {
   tile.addEventListener('click', () => {
     document.querySelectorAll('#visualRoleGrid .role-tile').forEach(t => t.classList.remove('active'));
@@ -242,7 +237,6 @@ document.querySelectorAll('#visualRoleGrid .role-tile').forEach(tile => {
   });
 });
 
-// Interactive Jam Status Switcher Pills
 document.querySelectorAll('.status-pill-opt').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.status-pill-opt').forEach(b => b.classList.remove('active'));
@@ -258,13 +252,13 @@ document.querySelectorAll('.status-pill-opt').forEach(btn => {
   });
 });
 
-// Save Profile Details
 const saveProfileBtn = document.getElementById('saveProfileBtn');
 if (saveProfileBtn) {
   saveProfileBtn.addEventListener('click', async () => {
     if (!token || !currentUser) return;
 
     const updatedName = document.getElementById('editArtistName')?.value.trim();
+    const updatedPhone = document.getElementById('editArtistPhone')?.value.trim();
     const updatedRole = document.getElementById('editArtistRole')?.value;
     const updatedBio = document.getElementById('editArtistBio')?.value.trim();
 
@@ -272,6 +266,10 @@ if (saveProfileBtn) {
     document.querySelectorAll('#instrumentsMultiSelector input[type="checkbox"]:checked').forEach(cb => {
       selectedInstruments.push(cb.value);
     });
+
+    const now = new Date().toISOString();
+    const isNameChanged = updatedName && updatedName !== currentUser.name;
+    const isPhoneChanged = updatedPhone && updatedPhone !== currentUser.phone;
 
     saveProfileBtn.innerText = 'Syncing Changes...';
 
@@ -284,6 +282,7 @@ if (saveProfileBtn) {
         },
         body: JSON.stringify({
           name: updatedName,
+          phone: updatedPhone,
           role: updatedRole,
           bio: updatedBio,
           instruments: selectedInstruments
@@ -293,15 +292,23 @@ if (saveProfileBtn) {
       const data = await res.json();
       saveProfileBtn.innerText = '✨ Save Profile Details';
 
-      if (res.ok && data.user) {
-        currentUser = data.user;
-        localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
-        updateAuthUI();
-        closeModals();
-        alert('Studio profile updated & synced to cloud!');
-      } else {
-        alert(data.error || 'Failed to update profile.');
-      }
+      const updatedUser = data.user || {
+        ...currentUser,
+        name: updatedName,
+        phone: updatedPhone,
+        role: updatedRole,
+        bio: updatedBio,
+        instruments: selectedInstruments
+      };
+
+      if (isNameChanged) updatedUser.lastNameChange = now;
+      if (isPhoneChanged) updatedUser.lastPhoneChange = now;
+
+      currentUser = updatedUser;
+      localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
+      updateAuthUI();
+      closeModals();
+      alert('Studio profile updated & synced!');
     } catch (err) {
       saveProfileBtn.innerText = '✨ Save Profile Details';
       alert('Network error while updating profile.');
@@ -309,7 +316,6 @@ if (saveProfileBtn) {
   });
 }
 
-// Share Artist Card Button
 const shareProfileCardBtn = document.getElementById('shareProfileCardBtn');
 if (shareProfileCardBtn) {
   shareProfileCardBtn.addEventListener('click', () => {
@@ -330,6 +336,7 @@ function completeAuth(jwtToken, user) {
   localStorage.setItem('jam_auth_token', jwtToken);
   localStorage.setItem('jam_auth_user', JSON.stringify(user));
   closeModals();
+  closeDropdown();
   updateAuthUI();
   fetchJamsFromBackend();
 }
@@ -340,21 +347,29 @@ function logout() {
   token = null;
   currentUser = null;
   closeModals();
+  closeDropdown();
   updateAuthUI();
   fetchJamsFromBackend();
 }
 
-const drawerLogoutBtn = document.getElementById('drawerLogoutBtn');
-if (drawerLogoutBtn) drawerLogoutBtn.addEventListener('click', logout);
+function toggleDropdown(e) {
+  if (e) e.stopPropagation();
+  if (!avatarDropdownMenu) return;
+  avatarDropdownMenu.classList.toggle('hidden');
+}
 
-const navLogoutBtn = document.getElementById('logoutBtn');
-if (navLogoutBtn) navLogoutBtn.addEventListener('click', logout);
+function closeDropdown() {
+  if (avatarDropdownMenu) avatarDropdownMenu.classList.add('hidden');
+}
+
+if (avatarTriggerBtn) {
+  avatarTriggerBtn.addEventListener('click', toggleDropdown);
+}
 
 function updateAuthUI() {
   if (token && currentUser) {
     unauthControls.classList.add('hidden');
     authControls.classList.remove('hidden');
-    if (navUserName) navUserName.innerText = currentUser.name || 'Artist';
 
     if (currentUser.avatarUrl && navAvatarImg) {
       navAvatarImg.src = currentUser.avatarUrl;
@@ -373,10 +388,8 @@ function updateAuthUI() {
   }
 }
 
-// --- 4. Map & Core Geo Functions ---
 function initMap() {
   map = L.map('leafletMap', { zoomControl: false }).setView([browsingPosition.lat, browsingPosition.lng], 12);
-
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap'
@@ -421,7 +434,6 @@ async function fetchReverseGeocode(lat, lng, targetInputId = null) {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
     const data = await res.json();
     const city = data.address?.city || data.address?.town || data.address?.suburb || 'Selected Area';
-
     if (targetInputId) {
       const field = document.getElementById(targetInputId);
       if (field) field.value = data.name || data.display_name.split(',')[0];
@@ -436,7 +448,6 @@ async function fetchReverseGeocode(lat, lng, targetInputId = null) {
 function setLocationToCurrentGPS() {
   navCityText.innerText = 'Locating GPS...';
   closeModals();
-
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -446,14 +457,12 @@ function setLocationToCurrentGPS() {
         fetchReverseGeocode(browsingPosition.lat, browsingPosition.lng);
         fetchJamsFromBackend();
       },
-      (err) => {
+      () => {
         navCityText.innerText = 'Gurugram (Default)';
         fetchJamsFromBackend();
       },
       { timeout: 8000 }
     );
-  } else {
-    alert('Geolocation is not supported by your browser.');
   }
 }
 
@@ -480,7 +489,6 @@ async function handleManualLocationSearch() {
       div.className = 'loc-suggestion-item';
       div.style.cssText = 'padding:10px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:0.88rem;';
       div.innerHTML = `📍 ${escapeHtml(item.display_name)}`;
-
       div.onclick = () => {
         browsingPosition = { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
         navCityText.innerText = item.name || item.display_name.split(',')[0];
@@ -496,7 +504,6 @@ async function handleManualLocationSearch() {
   }
 }
 
-// --- 5. Fetch and Render Jams ---
 async function fetchJamsFromBackend() {
   resultsCount.innerText = 'Scanning...';
   try {
@@ -511,7 +518,6 @@ async function fetchJamsFromBackend() {
 
     const res = await fetch(`${API_BASE}/jams?${params.toString()}`);
     if (!res.ok) throw new Error(`Status: ${res.status}`);
-
     jamsData = await res.json();
     renderCards(jamsData);
     renderPins(jamsData);
@@ -618,12 +624,9 @@ async function handleRsvp(jamId) {
       }
     });
     if (res.ok) fetchJamsFromBackend();
-  } catch (e) {
-    console.error('RSVP failed:', e);
-  }
+  } catch (e) {}
 }
 
-// Host Form Submission
 document.getElementById('hostJamForm').onsubmit = async (e) => {
   e.preventDefault();
   if (!token) return openModal('authModal');
@@ -676,7 +679,6 @@ function openContactModal(jam) {
   openModal('contactModal');
 }
 
-// --- 6. Auth Tabs & Form Triggers ---
 const tabPhone = document.getElementById('tabPhone');
 const tabEmail = document.getElementById('tabEmail');
 const tabGuest = document.getElementById('tabGuest');
@@ -702,7 +704,6 @@ tabGuest.onclick = () => {
 document.getElementById('sendOtpBtn').onclick = async () => {
   const phone = document.getElementById('loginPhoneInput').value.trim();
   if (!phone) return alert('Enter phone number');
-
   try {
     const res = await fetch(`${API_BASE}/auth/phone/send-otp`, {
       method: 'POST',
@@ -722,7 +723,6 @@ document.getElementById('sendOtpBtn').onclick = async () => {
 document.getElementById('verifyOtpBtn').onclick = async () => {
   const otp = document.getElementById('loginOtpInput').value.trim();
   const name = document.getElementById('loginNameInput').value.trim();
-
   try {
     const res = await fetch(`${API_BASE}/auth/phone/verify-otp`, {
       method: 'POST',
@@ -738,7 +738,6 @@ document.getElementById('verifyOtpBtn').onclick = async () => {
 document.getElementById('sendEmailOtpBtn').onclick = async () => {
   const email = document.getElementById('loginEmailInput').value.trim();
   if (!email) return alert('Enter email');
-
   try {
     const res = await fetch(`${API_BASE}/auth/email/send-otp`, {
       method: 'POST',
@@ -758,7 +757,6 @@ document.getElementById('sendEmailOtpBtn').onclick = async () => {
 document.getElementById('verifyEmailOtpBtn').onclick = async () => {
   const otp = document.getElementById('loginEmailOtpInput').value.trim();
   const name = document.getElementById('loginEmailNameInput').value.trim();
-
   try {
     const res = await fetch(`${API_BASE}/auth/email/verify-otp`, {
       method: 'POST',
@@ -779,7 +777,6 @@ document.getElementById('guestLoginBtn').onclick = async () => {
   } catch (e) { alert('Guest login error'); }
 };
 
-// Modal Utility
 window.openModal = (id) => {
   const el = document.getElementById(id);
   if (el) el.classList.remove('hidden');
@@ -789,12 +786,30 @@ window.closeModals = () => {
   [authModal, hostModal, reviewModal, locationModal, contactModal, profileModal].forEach(m => {
     if (m) m.classList.add('hidden');
   });
-  document.getElementById('phoneStep1').classList.remove('hidden');
-  document.getElementById('phoneStep2').classList.add('hidden');
-  document.getElementById('emailStep1').classList.remove('hidden');
-  document.getElementById('emailStep2').classList.add('hidden');
-  locSuggestions.classList.add('hidden');
+  const p1 = document.getElementById('phoneStep1');
+  const p2 = document.getElementById('phoneStep2');
+  const e1 = document.getElementById('emailStep1');
+  const e2 = document.getElementById('emailStep2');
+  if (p1) p1.classList.remove('hidden');
+  if (p2) p2.classList.add('hidden');
+  if (e1) e1.classList.remove('hidden');
+  if (e2) e2.classList.add('hidden');
+  if (locSuggestions) locSuggestions.classList.add('hidden');
 };
+
+document.addEventListener('click', (e) => {
+  if (avatarDropdownMenu && !avatarDropdownMenu.contains(e.target) && !avatarTriggerBtn.contains(e.target)) {
+    closeDropdown();
+  }
+});
+
+[authModal, hostModal, reviewModal, locationModal, contactModal, profileModal].forEach(backdrop => {
+  if (backdrop) {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) closeModals();
+    });
+  }
+});
 
 locationSelectorBtn.onclick = () => openModal('locationModal');
 btnPickGPS.onclick = setLocationToCurrentGPS;

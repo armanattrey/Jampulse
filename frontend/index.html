@@ -6,22 +6,16 @@
   <meta name="description" content="JamPulse — Discover and host live music circles near you." />
   <title>JamPulse — Live Music Circles Near You</title>
   
-  <!-- Typography & Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   
-  <!-- Leaflet Map CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  
-  <!-- Google One-Tap & Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Top App Navigation Bar -->
   <header class="app-header">
     <div class="header-left">
       <div class="brand">
@@ -29,7 +23,6 @@
         <span class="brand-text">Jam<strong>Pulse</strong></span>
       </div>
 
-      <!-- Dual Location Picker Button -->
       <button class="location-pill" id="locationSelectorBtn" title="Change Location" aria-label="Change current location">
         <span class="loc-icon" aria-hidden="true">📍</span>
         <div class="loc-text">
@@ -40,14 +33,12 @@
       </button>
     </div>
 
-    <!-- Central Search Bar -->
     <div class="search-container">
       <span class="search-glyph" aria-hidden="true">🔍</span>
       <input type="text" id="mainSearchInput" placeholder="Search by band, venue, instrument, or genre..." aria-label="Search for jam sessions" />
       <button class="search-clear-btn hidden" id="searchClearBtn" aria-label="Clear search">&times;</button>
     </div>
 
-    <!-- Actions & User Profile -->
     <div class="header-right">
       <button class="btn btn-brand" id="openHostBtn">+ Host Jam</button>
       
@@ -55,17 +46,34 @@
         <button class="btn btn-subtle" id="openLoginModalBtn">Sign In</button>
       </div>
 
-      <!-- Interactive User Profile Pill -->
-      <div id="authControls" class="user-chip hidden" onclick="openProfileDrawer()" title="View Profile & Settings">
-        <img id="navAvatarImg" class="user-avatar-img hidden" alt="Avatar" />
-        <div class="user-avatar" id="avatarInitial" aria-hidden="true">U</div>
-        <span class="user-name" id="navUserName">Artist</span>
-        <span class="chevron-sm">⚙️</span>
+      <div id="authControls" class="avatar-menu-container hidden">
+        <button id="avatarTriggerBtn" class="avatar-round-btn" aria-haspopup="true" aria-expanded="false" title="Account Menu">
+          <img id="navAvatarImg" class="user-avatar-img hidden" alt="Avatar" />
+          <div class="user-avatar" id="avatarInitial" aria-hidden="true">U</div>
+        </button>
+
+        <div id="avatarDropdownMenu" class="avatar-dropdown-menu hidden" role="menu">
+          <button class="dropdown-item" onclick="openProfileDrawer()" role="menuitem">
+            <span class="item-icon">👤</span> 1. Profile Details
+          </button>
+          <button class="dropdown-item" onclick="alert('Account Security settings coming soon!')" role="menuitem">
+            <span class="item-icon">🔒</span> 2. Security
+          </button>
+          <button class="dropdown-item" onclick="alert('Preferences coming soon!')" role="menuitem">
+            <span class="item-icon">⚙️</span> 3. Preferences
+          </button>
+          <button class="dropdown-item" onclick="alert('Need help? Email support@jampulse.com')" role="menuitem">
+            <span class="item-icon">💬</span> 4. Help & Support
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item text-danger-item" onclick="logout()" role="menuitem">
+            <span class="item-icon">🚪</span> 5. Log Out
+          </button>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- Sticky Quick-Category Rail -->
   <nav class="category-rail" aria-label="Music categories">
     <div class="rail-inner">
       <button class="rail-item active" data-vibe="All">🔥 All Jams</button>
@@ -83,11 +91,8 @@
     </div>
   </nav>
 
-  <!-- Main Workspace -->
   <main class="content-wrapper">
-    <!-- Left Feed Section -->
     <section class="feed-section" id="feedSection">
-      <!-- Filter Bar -->
       <div class="filter-strip">
         <div class="filter-group">
           <label for="radiusFilterSelect">Radius:</label>
@@ -112,25 +117,21 @@
         <span class="results-count" id="resultsCount" aria-live="polite">Scanning nearby jams...</span>
       </div>
 
-      <!-- Feed Container -->
       <div class="jams-grid" id="jamsFeedContainer"></div>
     </section>
 
-    <!-- Right Map Section -->
     <section class="map-section" id="mapSection">
       <div id="leafletMap"></div>
       <button class="map-recenter-btn" id="mapRecenterBtn" title="Switch to current GPS location" aria-label="Recenter map to current location">🎯</button>
     </section>
   </main>
 
-  <!-- ==================== MODALS ==================== -->
-
-  <!-- 1. Location Selector Modal -->
-  <div class="modal-backdrop hidden" id="locationModal" role="dialog" aria-modal="true" aria-labelledby="locationModalTitle">
+  <!-- Location Selector Modal -->
+  <div class="modal-backdrop hidden" id="locationModal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
       <div class="modal-header">
-        <h3 id="locationModalTitle">Choose Your Location</h3>
+        <h3>Choose Your Location</h3>
         <p>Pick how you want to discover jam sessions around you.</p>
       </div>
 
@@ -156,18 +157,17 @@
     </div>
   </div>
 
-  <!-- 2. Sign In / Sign Up Modal -->
-  <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+  <!-- Sign In Modal -->
+  <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true">
     <div class="modal-card auth-modal-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
       
       <div class="modal-header auth-header-center">
         <div class="auth-icon-badge" aria-hidden="true">🎸</div>
-        <h3 id="authModalTitle">Welcome to JamPulse</h3>
+        <h3>Welcome to JamPulse</h3>
         <p>Connect with local musicians, discover jams, or host your circle.</p>
       </div>
 
-      <!-- Real Google OAuth Interactive Button -->
       <div class="google-auth-box">
         <button class="btn btn-social-google btn-block" id="googleLoginTriggerBtn" type="button">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -182,15 +182,13 @@
 
       <div class="divider-text"><span>OR CONTINUE WITH</span></div>
 
-      <!-- Clean Segmented Navigation Switcher -->
       <div class="auth-tabs-segmented" role="tablist">
-        <button class="seg-tab-btn active" id="tabPhone" role="tab" aria-selected="true" aria-controls="phoneAuthBox">Mobile</button>
-        <button class="seg-tab-btn" id="tabEmail" role="tab" aria-selected="false" aria-controls="emailAuthBox">Email</button>
-        <button class="seg-tab-btn" id="tabGuest" role="tab" aria-selected="false" aria-controls="guestAuthBox">Guest</button>
+        <button class="seg-tab-btn active" id="tabPhone" role="tab">Mobile</button>
+        <button class="seg-tab-btn" id="tabEmail" role="tab">Email</button>
+        <button class="seg-tab-btn" id="tabGuest" role="tab">Guest</button>
       </div>
 
-      <!-- Tab A: Phone Form -->
-      <div class="tab-content" id="phoneAuthBox" role="tabpanel">
+      <div class="tab-content" id="phoneAuthBox">
         <div id="phoneStep1">
           <div class="form-group">
             <label for="loginPhoneInput">Indian Mobile Number</label>
@@ -216,8 +214,7 @@
         </div>
       </div>
 
-      <!-- Tab B: Email Form -->
-      <div class="tab-content hidden" id="emailAuthBox" role="tabpanel">
+      <div class="tab-content hidden" id="emailAuthBox">
         <div id="emailStep1">
           <div class="form-group">
             <label for="loginEmailInput">Email Address</label>
@@ -240,8 +237,7 @@
         </div>
       </div>
 
-      <!-- Tab C: Guest Access -->
-      <div class="tab-content hidden" id="guestAuthBox" role="tabpanel">
+      <div class="tab-content hidden" id="guestAuthBox">
         <div class="guest-card-box">
           <p class="guest-desc">Jump straight in as an explorer to browse jams, venues, and nearby artists without verification.</p>
           <button class="btn btn-brand btn-block mt-3" id="guestLoginBtn" type="button">Enter as Guest Jammer</button>
@@ -250,12 +246,12 @@
     </div>
   </div>
 
-  <!-- 3. Host Jam Session Modal -->
-  <div class="modal-backdrop hidden" id="hostModal" role="dialog" aria-modal="true" aria-labelledby="hostModalTitle">
+  <!-- Host Jam Modal -->
+  <div class="modal-backdrop hidden" id="hostModal" role="dialog" aria-modal="true">
     <div class="modal-card modal-large">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
       <div class="modal-header">
-        <h3 id="hostModalTitle">Host a Jam Session</h3>
+        <h3>Host a Jam Session</h3>
         <p>Broadcast your location so other vocalists, instrumentalists, and listeners can join in.</p>
       </div>
 
@@ -295,7 +291,7 @@
             <input type="text" id="hostLocationName" placeholder="e.g. Leisure Valley Amphitheater" required />
           </div>
           <div class="form-group">
-            <label for="hostCoords">Coordinates (Click map to autofill) *</label>
+            <label for="hostCoords">Coordinates *</label>
             <input type="text" id="hostCoords" placeholder="28.4595, 77.0266" readonly required />
           </div>
         </div>
@@ -329,8 +325,8 @@
     </div>
   </div>
 
-  <!-- 4. Review Experience Modal -->
-  <div class="modal-backdrop hidden" id="reviewModal" role="dialog" aria-modal="true" aria-labelledby="reviewTitleHeader">
+  <!-- Review Modal -->
+  <div class="modal-backdrop hidden" id="reviewModal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
       <div class="modal-header">
@@ -342,12 +338,12 @@
 
       <div class="star-rating-box">
         <label>How was the vibe & harmony?</label>
-        <div class="stars-row" id="starsSelector" aria-label="Select star rating">
-          <span class="star active" data-rating="1" aria-hidden="true">★</span>
-          <span class="star active" data-rating="2" aria-hidden="true">★</span>
-          <span class="star active" data-rating="3" aria-hidden="true">★</span>
-          <span class="star active" data-rating="4" aria-hidden="true">★</span>
-          <span class="star active" data-rating="5" aria-hidden="true">★</span>
+        <div class="stars-row" id="starsSelector">
+          <span class="star active" data-rating="1">★</span>
+          <span class="star active" data-rating="2">★</span>
+          <span class="star active" data-rating="3">★</span>
+          <span class="star active" data-rating="4">★</span>
+          <span class="star active" data-rating="5">★</span>
         </div>
         <input type="hidden" id="selectedStarValue" value="5" />
       </div>
@@ -368,8 +364,8 @@
     </div>
   </div>
 
-  <!-- 5. Contact Host Modal -->
-  <div class="modal-backdrop hidden" id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactTitleHeader">
+  <!-- Contact Modal -->
+  <div class="modal-backdrop hidden" id="contactModal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
       <div class="modal-header">
@@ -392,12 +388,11 @@
     </div>
   </div>
 
-  <!-- 6. Redesigned Artist Profile & Studio Modal -->
-  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+  <!-- Artist Profile Modal -->
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true">
     <div class="modal-card modal-profile-card">
-      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <button class="close-profile-modal-btn" onclick="closeModals()" aria-label="Close profile">&times;</button>
       
-      <!-- Soundstage Hero Banner -->
       <div class="profile-hero-banner">
         <div class="banner-gradient-pattern"></div>
         <div class="profile-avatar-super-wrapper">
@@ -408,15 +403,13 @@
       </div>
 
       <div class="profile-body-content">
-        <!-- Identity Header -->
         <div class="profile-identity-center">
           <div class="identity-header-row">
             <h3 id="profileNameDisplay">Artist Name</h3>
-            <span id="profileRoleBadge" class="badge-role-glow">🎸 Guitarist</span>
+            <span id="profileRoleBadge" class="badge-role-glow">⚡ Guitarist</span>
           </div>
           <p id="profileEmailDisplay" class="profile-handle-subtext">artist@jampulse.com</p>
 
-          <!-- Interactive Jam Status Switcher -->
           <div class="jam-status-switcher" id="statusSwitcher">
             <button type="button" class="status-pill-opt active" data-status="ready">
               <span class="dot green"></span> Open to Jam
@@ -430,7 +423,6 @@
           </div>
         </div>
 
-        <!-- Musician Stats Grid -->
         <div class="artist-stats-grid">
           <div class="stat-card">
             <span class="stat-num" id="statJamsCount">1</span>
@@ -446,17 +438,33 @@
           </div>
         </div>
 
-        <!-- Editor Controls -->
         <div class="profile-editor-sections">
+          <!-- Display Name (30-day cooldown) -->
           <div class="form-group">
-            <label for="editArtistName">Display / Stage Handle</label>
+            <div class="label-with-meta">
+              <label for="editArtistName">Display / Stage Handle</label>
+              <span id="nameCooldownBadge" class="cooldown-tag">30-day lock</span>
+            </div>
             <div class="input-with-glyph">
               <span class="input-glyph">🎵</span>
               <input type="text" id="editArtistName" placeholder="Stage or band handle..." />
             </div>
+            <p id="nameCooldownMsg" class="cooldown-hint"></p>
           </div>
 
-          <!-- Interactive Visual Role Selector Cards -->
+          <!-- Phone Link (90-day cooldown) -->
+          <div class="form-group">
+            <div class="label-with-meta">
+              <label for="editArtistPhone">Linked Phone Number</label>
+              <span id="phoneCooldownBadge" class="cooldown-tag">90-day lock</span>
+            </div>
+            <div class="input-with-glyph">
+              <span class="input-glyph">📱</span>
+              <input type="tel" id="editArtistPhone" placeholder="+91 9876543210" />
+            </div>
+            <p id="phoneCooldownMsg" class="cooldown-hint"></p>
+          </div>
+
           <div class="form-group">
             <label>Primary Role (Tap to select)</label>
             <div class="visual-role-grid" id="visualRoleGrid">
@@ -488,7 +496,6 @@
             <input type="hidden" id="editArtistRole" value="Guitarist" />
           </div>
 
-          <!-- Multi-Option Instrument Chips Grid -->
           <div class="form-group">
             <label>Gear & Instruments in your bag</label>
             <div class="instruments-multi-grid" id="instrumentsMultiSelector">
@@ -517,7 +524,7 @@
           <button class="btn btn-subtle btn-block" id="shareProfileCardBtn" type="button">
             🔗 Copy Artist Card Link
           </button>
-          <button class="btn btn-outline btn-block text-danger" id="drawerLogoutBtn" type="button">
+          <button class="btn btn-outline btn-block text-danger" onclick="logout()" type="button">
             🚪 Sign Out of JamPulse
           </button>
         </div>
@@ -525,7 +532,6 @@
     </div>
   </div>
 
-  <!-- Floating Circular Host Action Button -->
   <button 
     type="button" 
     class="btn-fab" 
@@ -537,7 +543,6 @@
     🎸
   </button>
 
-  <!-- Leaflet JS & App Controller -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
