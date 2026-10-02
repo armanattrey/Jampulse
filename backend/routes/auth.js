@@ -18,17 +18,17 @@ function generateOTP() {
 }
 
 // -----------------------------------------------------------------------------
-// Bulletproof User Resolver (Immune to MongoDB E11000 null-index collisions)
+// Bulletproof User Resolver (Prevents Enum Crashes & E11000 Duplicate Key Errors)
 // -----------------------------------------------------------------------------
 async function findOrCreateUser({ email, phone, name, role, authProvider, avatarUrl }) {
   let user = null;
 
-  // 1. Search by email if available
+  // 1. Check existing account by email
   if (email) {
     user = await User.findOne({ email: email.toLowerCase().trim() });
   }
 
-  // 2. Search by phone if not found and phone provided
+  // 2. Check existing account by phone
   if (!user && phone) {
     user = await User.findOne({ phone: phone.trim() });
   }
@@ -37,11 +37,15 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
     return user;
   }
 
-  // 3. User does not exist, build new account payload
+  // Guaranteed safe role fallback that always passes Mongoose validation
+  const validRoles = ['Guitarist', 'Vocalist', 'Drummer/Percussion', 'Bassist', 'Keys', 'Listener/Fan'];
+  const safeRole = validRoles.includes(role) ? role : 'Guitarist';
+
+  // 3. Prepare fresh user payload
   const newUserData = {
     name: name?.trim() || (email ? email.split('@')[0] : 'Jammer'),
-    role: role || 'Musician',
-    authProvider: authProvider || 'email',
+    role: safeRole,
+    authProvider: authProvider || 'guest',
     avatarUrl: avatarUrl || ''
   };
 
@@ -52,9 +56,9 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
     user = await User.create(newUserData);
     return user;
   } catch (err) {
-    console.warn('Initial User.create notice:', err.message);
+    console.warn('Initial User.create error:', err.message);
 
-    // Handle MongoDB duplicate key error (code 11000) for null indexes
+    // If MongoDB throws E11000 duplicate key error, fetch existing account
     if (err.code === 11000) {
       if (email) {
         user = await User.findOne({ email: email.toLowerCase().trim() });
@@ -65,7 +69,7 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
         if (user) return user;
       }
 
-      // If collision was caused by non-sparse null fields, attach unique fallback placeholders
+      // If caused by null unique index collisions, assign fallback unique value
       if (!newUserData.phone && err.message.includes('phone')) {
         newUserData.phone = `+91000${Date.now().toString().slice(-7)}`;
       }
@@ -357,12 +361,13 @@ router.post('/google', async (req, res) => {
 
     const cleanEmail = googleEmail.toLowerCase().trim();
 
+    // Use 'Guitarist' to avoid any schema enum mismatches
     const user = await findOrCreateUser({
       email: cleanEmail,
       name: googleName || 'Google Jammer',
       avatarUrl: googlePic || '',
       authProvider: 'google',
-      role: 'Musician'
+      role: 'Guitarist'
     });
 
     const token = jwt.sign(
