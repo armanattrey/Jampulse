@@ -1448,6 +1448,11 @@ body {
   .btn-fab::after {
     display: none;
   }
+
+  .avatar-dropdown-menu {
+    width: 230px;
+    max-height: 75vh;
+  }
 }
 
 /* ==================== AVATAR DROPDOWN & COOLDOWN ADDITIONS ==================== */
@@ -1481,7 +1486,10 @@ body {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 210px;
+  width: 240px;
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1494,40 +1502,64 @@ body {
   animation: fadeInDown 0.15s ease-out;
 }
 
+.avatar-dropdown-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.avatar-dropdown-menu::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+.dropdown-header {
+  padding: 6px 10px 4px 10px;
+  user-select: none;
+}
+
+.dropdown-header-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+}
+
 .dropdown-item {
   width: 100%;
-  padding: 9px 12px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: background 0.15s ease;
+  gap: 9px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .dropdown-item .item-icon {
   font-size: 0.95rem;
+  flex-shrink: 0;
 }
 
 .dropdown-item:hover {
   background: #f1f5f9;
+  color: var(--brand);
 }
 
 .dropdown-divider {
   height: 1px;
   background: var(--border);
-  margin: 4px 0;
+  margin: 5px 0;
 }
 
 .dropdown-item.text-danger-item {
@@ -1536,6 +1568,7 @@ body {
 
 .dropdown-item.text-danger-item:hover {
   background: #fef2f2;
+  color: #b91c1c;
 }
 
 .close-profile-modal-btn {
