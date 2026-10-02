@@ -1,5 +1,5 @@
 /* ==========================================================================
-   JamPulse — Consumer-Grade Clean Design (Amazon/Zomato High-Usability Style)
+   JamPulse — Consumer-Grade Clean Design (Mobile Responsive & Standalone APK)
    ========================================================================== */
 
 :root {
@@ -8,7 +8,7 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
-  --brand: #e11d48; /* Vibrant crimson/brand accent */
+  --brand: #e11d48;
   --brand-hover: #be123c;
   --brand-light: #ffe4e6;
   --accent: #2563eb;
@@ -26,32 +26,46 @@
   --shadow-fab: 0 8px 24px rgba(225, 29, 72, 0.35);
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
 }
 
 body {
-  background-color: var(--bg-app);
-  color: var(--text-primary);
-  height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* ==================== 1. HEADER ==================== */
 .app-header {
-  height: 72px;
+  flex-shrink: 0;
+  min-height: 64px;
   background: #ffffff;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  gap: 20px;
+  padding: 0 16px;
+  gap: 12px;
   z-index: 100;
   box-shadow: var(--shadow-sm);
 }
@@ -59,21 +73,21 @@ body {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
   user-select: none;
 }
 .brand-icon {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
 }
 .brand-text {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text-primary);
@@ -85,8 +99,8 @@ body {
 .location-pill {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
+  gap: 6px;
+  padding: 5px 10px;
   background: var(--bg-app);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -98,7 +112,7 @@ body {
   background: #ffffff;
 }
 .loc-icon {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
 }
 .loc-text {
   display: flex;
@@ -106,47 +120,47 @@ body {
   text-align: left;
 }
 .loc-label {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--text-muted);
   text-transform: uppercase;
   font-weight: 600;
 }
 .loc-city {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-primary);
-  max-width: 140px;
+  max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .chevron {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--text-muted);
 }
 
 /* Central Search Bar */
 .search-container {
   flex: 1;
-  max-width: 600px;
+  max-width: 500px;
   position: relative;
   display: flex;
   align-items: center;
 }
 .search-glyph {
   position: absolute;
-  left: 16px;
-  font-size: 1rem;
+  left: 14px;
+  font-size: 0.95rem;
   opacity: 0.5;
   pointer-events: none;
 }
 .search-container input {
   width: 100%;
-  padding: 12px 40px 12px 46px;
+  padding: 10px 36px 10px 40px;
   background: #f1f5f9;
   border: 1.5px solid transparent;
   border-radius: var(--radius-full);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: var(--text-primary);
   outline: none;
   transition: all 0.2s ease;
@@ -154,11 +168,11 @@ body {
 .search-container input:focus {
   background: #ffffff;
   border-color: var(--brand);
-  box-shadow: 0 0 0 4px var(--brand-light);
+  box-shadow: 0 0 0 3px var(--brand-light);
 }
 .search-clear-btn {
   position: absolute;
-  right: 14px;
+  right: 12px;
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -170,20 +184,20 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 6px;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
   border-radius: var(--radius-full);
   background: #f1f5f9;
 }
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--brand);
   color: white;
@@ -191,16 +205,16 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 .user-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 .btn-logout {
   background: none;
   border: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   cursor: pointer;
   padding: 2px 4px;
@@ -211,20 +225,21 @@ body {
 
 /* ==================== 2. CATEGORY RAIL ==================== */
 .category-rail {
+  flex-shrink: 0;
   background: #ffffff;
   border-bottom: 1px solid var(--border);
-  padding: 10px 24px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  overflow-x: auto;
+  gap: 12px;
 }
 .rail-inner {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .rail-inner::-webkit-scrollbar {
   display: none;
@@ -234,8 +249,8 @@ body {
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
-  padding: 8px 16px;
-  font-size: 0.85rem;
+  padding: 6px 14px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -254,11 +269,11 @@ body {
   display: none;
 }
 
-/* ==================== 3. CONTENT LAYOUT (Split View) ==================== */
+/* ==================== 3. CONTENT LAYOUT ==================== */
 .content-wrapper {
   flex: 1;
   display: flex;
-  height: calc(100vh - 128px);
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
@@ -274,29 +289,32 @@ body {
 }
 
 .filter-strip {
-  padding: 14px 24px;
+  flex-shrink: 0;
+  padding: 10px 16px;
   background: #ffffff;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 20px;
-  font-size: 0.85rem;
+  gap: 12px;
+  font-size: 0.8rem;
+  overflow-x: auto;
 }
 .filter-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .filter-group label {
   color: var(--text-muted);
   font-weight: 500;
+  font-size: 0.76rem;
 }
 .filter-group select {
-  padding: 6px 12px;
+  padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: #ffffff;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-primary);
   outline: none;
@@ -305,15 +323,18 @@ body {
   margin-left: auto;
   font-weight: 600;
   color: var(--text-muted);
+  font-size: 0.76rem;
+  white-space: nowrap;
 }
 
 .jams-grid {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 24px 80px 24px;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 16px 85px 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 /* Jam Session Cards */
@@ -321,11 +342,12 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 20px;
+  padding: 16px;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
   cursor: pointer;
   position: relative;
+  width: 100%;
 }
 .jam-card:hover {
   transform: translateY(-2px);
@@ -339,7 +361,7 @@ body {
   align-items: flex-start;
 }
 .card-team {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--brand);
@@ -348,50 +370,50 @@ body {
 .card-dist-badge {
   background: #f1f5f9;
   border: 1px solid var(--border);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
   color: var(--text-secondary);
 }
 
 .card-title {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-top: 4px;
 }
 .card-desc {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  line-height: 1.45;
-  margin-top: 6px;
+  line-height: 1.4;
+  margin-top: 5px;
 }
 
 .card-info-table {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 0.86rem;
+  gap: 5px;
+  font-size: 0.82rem;
   color: var(--text-secondary);
 }
 .info-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 14px;
+  gap: 5px;
+  margin-top: 12px;
 }
 .tag-badge {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
   background: #f1f5f9;
   color: var(--text-secondary);
@@ -402,8 +424,8 @@ body {
 }
 
 .card-bottom {
-  margin-top: 16px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -412,10 +434,10 @@ body {
 .rating-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-weight: 700;
   color: #1e293b;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
 }
 .rating-pill span.star {
   color: var(--star);
@@ -423,13 +445,13 @@ body {
 .rating-count {
   color: var(--text-muted);
   font-weight: 500;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* Right Map Section */
@@ -458,17 +480,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
-}
-.map-recenter-btn:hover {
-  transform: scale(1.08);
 }
 
 /* ==================== 4. BUTTONS & UI CONTROLS ==================== */
 .btn {
-  padding: 9px 18px;
+  padding: 8px 16px;
   border-radius: var(--radius-full);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -476,7 +494,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   text-decoration: none;
 }
 .btn-brand {
@@ -510,20 +528,20 @@ body {
   background-color: var(--whatsapp-hover);
 }
 .btn-sm {
-  padding: 6px 14px;
-  font-size: 0.8rem;
+  padding: 5px 12px;
+  font-size: 0.78rem;
 }
 .btn-block {
   width: 100%;
 }
 
-/* ==================== 5. FLOATING CIRCULAR BUTTON (FAB) ==================== */
+/* ==================== 5. FLOATING ACTION BUTTON (FAB) ==================== */
 .btn-fab {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  width: 58px;
-  height: 58px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  right: 20px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   background: var(--brand);
   color: #ffffff;
@@ -534,38 +552,33 @@ body {
   justify-content: center;
   box-shadow: var(--shadow-fab);
   z-index: 1000;
-  font-size: 1.6rem;
-  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, background-color 0.2s ease;
+  font-size: 1.5rem;
   outline: none;
 }
 
 .btn-fab:hover {
   background: var(--brand-hover);
-  transform: scale(1.1) rotate(4deg);
-  box-shadow: 0 12px 28px rgba(225, 29, 72, 0.45);
 }
 
 .btn-fab:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
-/* Tooltip badge for Floating Button */
 .btn-fab::after {
   content: attr(data-tooltip);
   position: absolute;
-  right: 70px;
+  right: 66px;
   background: #0f172a;
   color: #ffffff;
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   transform: translateX(8px);
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
 }
 
 .btn-fab:hover::after {
@@ -588,21 +601,21 @@ body {
 .modal-card {
   background: #ffffff;
   border-radius: var(--radius-lg);
-  padding: 28px;
+  padding: 24px;
   width: 440px;
   max-width: 100%;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
   position: relative;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 .modal-large {
-  width: 650px;
+  width: 620px;
 }
 .close-modal-btn {
   position: absolute;
-  top: 18px;
-  right: 20px;
+  top: 14px;
+  right: 16px;
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -610,28 +623,29 @@ body {
   cursor: pointer;
 }
 .modal-header h3 {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 .modal-header p {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin-top: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .auth-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 .tab-btn {
   flex: 1;
-  padding: 10px;
+  padding: 8px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   font-weight: 600;
+  font-size: 0.84rem;
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -641,23 +655,23 @@ body {
 }
 
 .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 .form-group label {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 .form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 10px 14px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   outline: none;
 }
 .form-group input:focus,
@@ -669,53 +683,54 @@ body {
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 8px;
+  margin-top: 18px;
 }
 
 /* Location Picker Cards */
 .loc-option-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   background: var(--bg-app);
   border: 1.5px solid var(--border);
-  padding: 14px 18px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
 }
 .loc-option-card:hover {
   border-color: var(--brand);
   background: #ffffff;
-  box-shadow: var(--shadow-sm);
 }
 .loc-option-icon {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
 }
 .loc-option-info {
   display: flex;
   flex-direction: column;
+  text-align: left;
 }
 .loc-option-info strong {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text-primary);
 }
 .loc-option-info span {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
 }
 
 .divider-text {
   text-align: center;
   position: relative;
-  margin: 20px 0;
+  margin: 18px 0;
 }
 .divider-text::before {
   content: "";
@@ -729,8 +744,8 @@ body {
 .divider-text span {
   position: relative;
   background: #ffffff;
-  padding: 0 12px;
-  font-size: 0.72rem;
+  padding: 0 10px;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
 }
@@ -744,22 +759,21 @@ body {
 }
 
 .loc-suggestions {
-  margin-top: 10px;
-  max-height: 200px;
+  margin-top: 8px;
+  max-height: 180px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: #ffffff;
 }
 .loc-suggestion-item {
-  padding: 10px 14px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: background 0.15s ease;
 }
 .loc-suggestion-item:last-child {
   border-bottom: none;
@@ -771,37 +785,37 @@ body {
 
 /* Contact Modal Styles */
 .contact-desc {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   color: var(--text-secondary);
-  margin-bottom: 20px;
-  line-height: 1.45;
+  margin-bottom: 16px;
+  line-height: 1.4;
 }
 .contact-options-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .contact-options-stack .btn {
   justify-content: center;
-  font-size: 0.95rem;
-  padding: 12px;
+  font-size: 0.9rem;
+  padding: 11px;
 }
 
 /* Star Rating Widget */
 .star-rating-box {
   background: var(--bg-app);
-  padding: 16px;
+  padding: 14px;
   border-radius: var(--radius-md);
   text-align: center;
 }
 .stars-row {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 6px;
 }
 .stars-row .star {
-  font-size: 2.2rem;
+  font-size: 2rem;
   color: #cbd5e1;
   cursor: pointer;
 }
@@ -810,11 +824,11 @@ body {
 }
 
 .past-reviews-box h4 {
-  font-size: 0.9rem;
-  margin-bottom: 10px;
+  font-size: 0.86rem;
+  margin-bottom: 8px;
 }
 .past-reviews-list {
-  max-height: 160px;
+  max-height: 140px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -822,9 +836,9 @@ body {
 }
 .review-item {
   background: var(--bg-app);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 .review-item-header {
   display: flex;
@@ -834,7 +848,7 @@ body {
 }
 
 .google-auth-box {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .btn-social {
   background: #ffffff;
@@ -844,16 +858,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
 }
 .btn-social:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
 }
 .field-hint {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .hidden { display: none !important; }
@@ -861,63 +875,124 @@ body {
 .mt-3 { margin-top: 12px; }
 .mt-4 { margin-top: 16px; }
 .text-brand { color: var(--brand); font-weight: 700; }
-.empty-text { font-size: 0.85rem; color: var(--text-muted); }
+.empty-text { font-size: 0.82rem; color: var(--text-muted); }
 
-/* ==================== 7. RESPONSIVE MOBILE VIEW ==================== */
+/* ==================== 7. MOBILE RESPONSIVE ENGINE ==================== */
 @media (max-width: 900px) {
   .app-header {
-    padding: 0 16px;
+    height: auto;
+    min-height: 56px;
+    padding: 8px 12px;
   }
+  
+  .brand-text {
+    font-size: 1.15rem;
+  }
+
+  .location-pill {
+    padding: 4px 8px;
+  }
+
+  .loc-city {
+    max-width: 95px;
+    font-size: 0.76rem;
+  }
+
+  #openHostBtn {
+    display: none; /* Accessible via FAB button */
+  }
+
   .search-container {
     display: none;
   }
-  .content-wrapper {
-    flex-direction: column;
-    height: calc(100vh - 120px);
+
+  .category-rail {
+    padding: 6px 12px;
+    gap: 8px;
   }
+
+  .rail-inner {
+    flex: 1;
+    overflow-x: auto;
+  }
+
   .mobile-view-toggle {
     display: flex;
     background: #f1f5f9;
     border-radius: var(--radius-full);
     padding: 2px;
+    flex-shrink: 0;
   }
+
   .toggle-btn {
-    padding: 4px 12px;
+    padding: 4px 10px;
     border: none;
     border-radius: var(--radius-full);
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 600;
     background: transparent;
     cursor: pointer;
   }
+
   .toggle-btn.active {
     background: white;
     box-shadow: var(--shadow-sm);
   }
+
+  .content-wrapper {
+    flex-direction: column;
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
   .feed-section {
     flex: 1;
     width: 100%;
+    height: 100%;
     border-right: none;
   }
+
+  .jams-grid {
+    padding: 12px 12px 90px 12px;
+  }
+
   .map-section {
     display: none;
     flex: 1;
     width: 100%;
+    height: 100%;
   }
+
   .content-wrapper.show-map .feed-section {
     display: none;
   }
+
   .content-wrapper.show-map .map-section {
     display: block;
+    height: 100%;
   }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .modal-card {
+    padding: 20px 16px;
+    width: 94%;
+    max-height: 85vh;
+  }
+
   .btn-fab {
-    bottom: 20px;
-    right: 20px;
-    width: 52px;
-    height: 52px;
-    font-size: 1.4rem;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    right: 18px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.35rem;
   }
+
   .btn-fab::after {
-    display: none; /* Hide hover tooltip on touch devices */
+    display: none;
   }
 }

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="JamPulse — Discover and host live music circles near you." />
+  <title>JamPulse — Live Music Circles Near You</title>
+  
+  <!-- Typography & Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  
+  <!-- Google One-Tap & Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">🎸</span>
+        <span class="brand-text">Jam<strong>Pulse</strong></span>
+      </div>
+
+      <!-- Dual Location Picker Button -->
+      <button class="location-pill" id="locationSelectorBtn" title="Change Location" aria-label="Change current location">
+        <span class="loc-icon" aria-hidden="true">📍</span>
+        <div class="loc-text">
+          <span class="loc-label">Browsing Near</span>
+          <span class="loc-city" id="navCityText">Detecting...</span>
+        </div>
+        <span class="chevron" aria-hidden="true">▼</span>
+      </button>
+    </div>
+
+    <!-- Central Search Bar -->
+    <div class="search-container">
+      <span class="search-glyph" aria-hidden="true">🔍</span>
+      <input type="text" id="mainSearchInput" placeholder="Search by band, venue, instrument, or genre..." aria-label="Search for jam sessions" />
+      <button class="search-clear-btn hidden" id="searchClearBtn" aria-label="Clear search">&times;</button>
+    </div>
+
+    <!-- Actions & User Profile -->
+    <div class="header-right">
+      <button class="btn btn-brand" id="openHostBtn">+ Host Jam</button>
+      
+      <div id="unauthControls">
+        <button class="btn btn-subtle" id="openLoginModalBtn">Sign In</button>
+      </div>
+
+      <div id="authControls" class="user-chip hidden">
+        <div class="user-avatar" id="avatarInitial" aria-hidden="true">U</div>
+        <span class="user-name" id="navUserName">Artist</span>
+        <button class="btn-logout" id="logoutBtn" title="Log Out" aria-label="Log Out">✕</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Quick-Category Rail -->
+  <nav class="category-rail" aria-label="Music categories">
+    <div class="rail-inner">
+      <button class="rail-item active" data-vibe="All">🔥 All Jams</button>
+      <button class="rail-item" data-vibe="Acoustic Unplugged">🪕 Acoustic</button>
+      <button class="rail-item" data-vibe="Electric Jam">⚡ Electric</button>
+      <button class="rail-item" data-vibe="Open Mic">🎙️ Open Mic</button>
+      <button class="rail-item" data-vibe="Sufi & Classical">🪘 Classical</button>
+      <button class="rail-item" data-vibe="Chill Electronic">🎧 Electronic</button>
+      <button class="rail-item" data-vibe="Jazz & Blues">🎷 Jazz</button>
+    </div>
+
+    <div class="mobile-view-toggle">
+      <button class="toggle-btn active" id="btnShowList">List</button>
+      <button class="toggle-btn" id="btnShowMap">Map</button>
+    </div>
+  </nav>
+
+  <!-- Main Workspace -->
+  <main class="content-wrapper">
+    <!-- Left Feed Section -->
+    <section class="feed-section" id="feedSection">
+      <!-- Filter Bar -->
+      <div class="filter-strip">
+        <div class="filter-group">
+          <label for="radiusFilterSelect">Radius:</label>
+          <select id="radiusFilterSelect">
+            <option value="5">Within 5 km</option>
+            <option value="10">Within 10 km</option>
+            <option value="25" selected>Within 25 km</option>
+            <option value="50">Within 50 km</option>
+            <option value="100">Within 100 km</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sortFilterSelect">Sort:</label>
+          <select id="sortFilterSelect">
+            <option value="distance" selected>Distance: Nearest</option>
+            <option value="rating">Top Rated</option>
+            <option value="timing">Happening Soon</option>
+          </select>
+        </div>
+
+        <span class="results-count" id="resultsCount" aria-live="polite">Scanning nearby jams...</span>
+      </div>
+
+      <!-- Feed Container -->
+      <div class="jams-grid" id="jamsFeedContainer"></div>
+    </section>
+
+    <!-- Right Map Section -->
+    <section class="map-section" id="mapSection">
+      <div id="leafletMap"></div>
+      <button class="map-recenter-btn" id="mapRecenterBtn" title="Switch to current GPS location" aria-label="Recenter map to current location">🎯</button>
+    </section>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Location Selector Modal -->
+  <div class="modal-backdrop hidden" id="locationModal" role="dialog" aria-modal="true" aria-labelledby="locationModalTitle">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="locationModalTitle">Choose Your Location</h3>
+        <p>Pick how you want to discover jam sessions around you.</p>
+      </div>
+
+      <button class="loc-option-card" id="btnPickGPS" type="button">
+        <div class="loc-option-icon" aria-hidden="true">🎯</div>
+        <div class="loc-option-info">
+          <strong>Use Current GPS Location</strong>
+          <span>Automatically detect where you are right now</span>
+        </div>
+      </button>
+
+      <div class="divider-text"><span>OR SEARCH A SPECIFIC AREA</span></div>
+
+      <div class="form-group">
+        <label for="manualLocInput">City, Neighborhood, or Landmark</label>
+        <div class="search-input-box">
+          <input type="text" id="manualLocInput" placeholder="e.g. Connaught Place, Bandra, Indiranagar, Cyber Hub..." />
+          <button class="btn btn-brand btn-sm" id="btnSearchLocation" type="button">Search</button>
+        </div>
+      </div>
+
+      <div class="loc-suggestions hidden" id="locSuggestions"></div>
+    </div>
+  </div>
+
+  <!-- 2. Sign In / Sign Up Modal -->
+  <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="authModalTitle">Join JamPulse</h3>
+        <p>Connect with local musicians, discover jams, or host your own band.</p>
+      </div>
+
+      <div class="google-auth-box">
+        <div id="googleOneTapBtn" style="display:flex;justify-content:center;"></div>
+        <button class="btn btn-social btn-block mt-2" id="simulatedGoogleBtn" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+            <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+            <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="divider-text"><span>OR VERIFY WITH</span></div>
+
+      <div class="auth-tabs" role="tablist">
+        <button class="tab-btn active" id="tabPhone" role="tab" aria-selected="true" aria-controls="phoneAuthBox">🇮🇳 Mobile Number</button>
+        <button class="tab-btn" id="tabEmail" role="tab" aria-selected="false" aria-controls="emailAuthBox">✉️ Email</button>
+        <button class="tab-btn" id="tabGuest" role="tab" aria-selected="false" aria-controls="guestAuthBox">Guest</button>
+      </div>
+
+      <!-- Tab A: Phone Form -->
+      <div class="tab-content" id="phoneAuthBox" role="tabpanel">
+        <div id="phoneStep1">
+          <div class="form-group">
+            <label for="loginPhoneInput">Indian Mobile Number (+91)</label>
+            <input type="tel" id="loginPhoneInput" placeholder="9876543210 or +91 9876543210" />
+            <span class="field-hint" id="phoneValidateStatus">Real Indian mobile validation active</span>
+          </div>
+          <button class="btn btn-brand btn-block" id="sendOtpBtn" type="button">Send Mobile OTP</button>
+        </div>
+
+        <div id="phoneStep2" class="hidden">
+          <div class="form-group">
+            <label for="loginOtpInput">Enter 6-Digit SMS Code</label>
+            <input type="text" id="loginOtpInput" placeholder="6-digit OTP" maxlength="6" />
+          </div>
+          <div class="form-group">
+            <label for="loginNameInput">Your Name / Artist Handle</label>
+            <input type="text" id="loginNameInput" placeholder="e.g. Rahul on Vocals" />
+          </div>
+          <button class="btn btn-brand btn-block" id="verifyOtpBtn" type="button">Verify & Enter</button>
+        </div>
+      </div>
+
+      <!-- Tab B: Email Form -->
+      <div class="tab-content hidden" id="emailAuthBox" role="tabpanel">
+        <div id="emailStep1">
+          <div class="form-group">
+            <label for="loginEmailInput">Email Address</label>
+            <input type="email" id="loginEmailInput" placeholder="name@domain.com" />
+            <span class="field-hint" id="emailValidateStatus">Live DNS MX mail check active</span>
+          </div>
+          <button class="btn btn-brand btn-block" id="sendEmailOtpBtn" type="button">Verify & Send Email Code</button>
+        </div>
+
+        <div id="emailStep2" class="hidden">
+          <div class="form-group">
+            <label for="loginEmailOtpInput">Enter 6-Digit Email Code</label>
+            <input type="text" id="loginEmailOtpInput" placeholder="6-digit code" maxlength="6" />
+          </div>
+          <div class="form-group">
+            <label for="loginEmailNameInput">Your Name / Artist Handle</label>
+            <input type="text" id="loginEmailNameInput" placeholder="e.g. Maya Strings" />
+          </div>
+          <button class="btn btn-brand btn-block" id="verifyEmailOtpBtn" type="button">Confirm & Sign In</button>
+        </div>
+      </div>
+
+      <!-- Tab C: Guest Access -->
+      <div class="tab-content hidden" id="guestAuthBox" role="tabpanel">
+        <p class="guest-desc">Jump straight in as a guest without verification.</p>
+        <button class="btn btn-brand btn-block" id="guestLoginBtn" type="button">Enter as Guest Jammer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Host Jam Session Modal -->
+  <div class="modal-backdrop hidden" id="hostModal" role="dialog" aria-modal="true" aria-labelledby="hostModalTitle">
+    <div class="modal-card modal-large">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="hostModalTitle">Host a Jam Session</h3>
+        <p>Broadcast your location so other vocalists, instrumentalists, and listeners can join in.</p>
+      </div>
+
+      <form id="hostJamForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostTitle">Session Title *</label>
+            <input type="text" id="hostTitle" placeholder="e.g. Acoustic Melodies in the Garden" required />
+          </div>
+          <div class="form-group">
+            <label for="hostTeam">Host / Band Name *</label>
+            <input type="text" id="hostTeam" placeholder="e.g. The Indie Collective" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostVibe">Music Vibe</label>
+            <select id="hostVibe">
+              <option value="Acoustic Unplugged">Acoustic Unplugged</option>
+              <option value="Electric Jam">Electric Jam</option>
+              <option value="Open Mic">Open Mic</option>
+              <option value="Sufi & Classical">Sufi & Classical</option>
+              <option value="Chill Electronic">Chill Electronic</option>
+              <option value="Jazz & Blues">Jazz & Blues</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="hostGenres">Genres (comma separated)</label>
+            <input type="text" id="hostGenres" placeholder="Folk, Bollywood, Pop, Blues" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostLocationName">Venue / Spot Name *</label>
+            <input type="text" id="hostLocationName" placeholder="e.g. Leisure Valley Amphitheater" required />
+          </div>
+          <div class="form-group">
+            <label for="hostCoords">Coordinates (Click map to autofill) *</label>
+            <input type="text" id="hostCoords" placeholder="28.4595, 77.0266" readonly required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hostStartTime">Start Time *</label>
+            <input type="datetime-local" id="hostStartTime" required />
+          </div>
+          <div class="form-group">
+            <label for="hostEndTime">End Time *</label>
+            <input type="datetime-local" id="hostEndTime" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="hostInstruments">Instruments Welcome / Needed</label>
+          <input type="text" id="hostInstruments" placeholder="e.g. Cajon, Acoustic Guitar, Flute, Harmony Vocals" />
+        </div>
+
+        <div class="form-group">
+          <label for="hostDesc">Session Details</label>
+          <textarea id="hostDesc" rows="3" placeholder="Tell people what to expect, who can sing, or what gear is available..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-subtle" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-brand">Publish Jam Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Review Experience Modal -->
+  <div class="modal-backdrop hidden" id="reviewModal" role="dialog" aria-modal="true" aria-labelledby="reviewTitleHeader">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="reviewTitleHeader">Rate Jam Experience</h3>
+        <p id="reviewSubtitleHeader" class="text-brand">Band Name</p>
+      </div>
+
+      <input type="hidden" id="reviewJamId" />
+
+      <div class="star-rating-box">
+        <label>How was the vibe & harmony?</label>
+        <div class="stars-row" id="starsSelector" aria-label="Select star rating">
+          <span class="star active" data-rating="1" aria-hidden="true">★</span>
+          <span class="star active" data-rating="2" aria-hidden="true">★</span>
+          <span class="star active" data-rating="3" aria-hidden="true">★</span>
+          <span class="star active" data-rating="4" aria-hidden="true">★</span>
+          <span class="star active" data-rating="5" aria-hidden="true">★</span>
+        </div>
+        <input type="hidden" id="selectedStarValue" value="5" />
+      </div>
+
+      <div class="form-group mt-3">
+        <label for="reviewComment">Share your experience</label>
+        <textarea id="reviewComment" rows="3" placeholder="Great acoustics, welcoming vocal circle, had a blast..."></textarea>
+      </div>
+
+      <button class="btn btn-brand btn-block mt-2" id="submitReviewBtn" type="button">Submit Feedback</button>
+
+      <div class="past-reviews-box mt-4">
+        <h4>Community Feedback</h4>
+        <div class="past-reviews-list" id="pastReviewsList">
+          <p class="empty-text">No reviews yet. Be the first to leave one!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Contact Host Modal -->
+  <div class="modal-backdrop hidden" id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactTitleHeader">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h3 id="contactTitleHeader">Contact Host</h3>
+        <p id="contactSubtitleHeader" class="text-brand">Jam Session Title</p>
+      </div>
+
+      <p class="contact-desc">
+        Connect with the host to ask questions, request specific songs, or confirm instrument requirements.
+      </p>
+
+      <div class="contact-options-stack">
+        <a id="whatsappContactLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">
+          💬 Message on WhatsApp
+        </a>
+        <button id="inAppContactBtn" class="btn btn-brand" type="button">
+          ✉️ Send In-App Message
+        </button>
+        <button id="secureCallBtn" class="btn btn-outline" type="button">
+          📞 Secure Voice Call (Hidden Number)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Circular Host Action Button -->
+  <button 
+    type="button" 
+    class="btn-fab" 
+    id="floatingHostBtn" 
+    data-tooltip="Host a Jam Session" 
+    aria-label="Host a Jam Session"
+    onclick="document.getElementById('openHostBtn').click()"
+  >
+    🎸
+  </button>
+
+  <!-- Leaflet JS & App Controller -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

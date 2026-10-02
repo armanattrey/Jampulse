@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="description" content="JamPulse — Discover and host live music circles near you." />
   <title>JamPulse — Live Music Circles Near You</title>
   
@@ -67,12 +67,12 @@
   <nav class="category-rail" aria-label="Music categories">
     <div class="rail-inner">
       <button class="rail-item active" data-vibe="All">🔥 All Jams</button>
-      <button class="rail-item" data-vibe="Acoustic Unplugged">🪕 Acoustic Unplugged</button>
-      <button class="rail-item" data-vibe="Electric Jam">⚡ Electric Rock</button>
+      <button class="rail-item" data-vibe="Acoustic Unplugged">🪕 Acoustic</button>
+      <button class="rail-item" data-vibe="Electric Jam">⚡ Electric</button>
       <button class="rail-item" data-vibe="Open Mic">🎙️ Open Mic</button>
-      <button class="rail-item" data-vibe="Sufi & Classical">🪘 Sufi & Classical</button>
-      <button class="rail-item" data-vibe="Chill Electronic">🎧 Chill Beats</button>
-      <button class="rail-item" data-vibe="Jazz & Blues">🎷 Jazz & Blues</button>
+      <button class="rail-item" data-vibe="Sufi & Classical">🪘 Classical</button>
+      <button class="rail-item" data-vibe="Chill Electronic">🎧 Electronic</button>
+      <button class="rail-item" data-vibe="Jazz & Blues">🎷 Jazz</button>
     </div>
 
     <div class="mobile-view-toggle">
@@ -385,20 +385,20 @@
     </div>
   </div>
 
+  <!-- Floating Circular Host Action Button -->
+  <button 
+    type="button" 
+    class="btn-fab" 
+    id="floatingHostBtn" 
+    data-tooltip="Host a Jam Session" 
+    aria-label="Host a Jam Session"
+    onclick="document.getElementById('openHostBtn').click()"
+  >
+    🎸
+  </button>
+
   <!-- Leaflet JS & App Controller -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
-
-  <!-- Floating Circular Host Action Button -->
-<button 
-  type="button" 
-  class="btn-fab" 
-  id="floatingHostBtn" 
-  data-tooltip="Host a Jam Session" 
-  aria-label="Host a Jam Session"
-  onclick="document.getElementById('openHostBtn').click()"
->
-  🎸
-</button>
 </body>
 </html>

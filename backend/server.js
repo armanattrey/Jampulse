@@ -113,3 +113,12 @@ app.get('/', (req, res) => res.json({ status: 'live', message: 'JamPulse API is 
 app.listen(PORT, () => {
   console.log(`🚀 JamCircle server running at http://localhost:${PORT}`);
 });
+const path = require('path');
+
+// Place this right AFTER your middleware (cors, express.json), and BEFORE your API routes:
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Place this at the VERY BOTTOM of server.js (after all /api routes):
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});

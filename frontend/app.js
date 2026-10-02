@@ -4,7 +4,7 @@
  * Real-time Jam Feeds, Auth (Google, Phone, Email, Guest), and Modals.
  */
 
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = 'https://jampulse.onrender.com/api';
 
 // --- State Management ---
 let map;
@@ -212,7 +212,7 @@ async function fetchJamsFromBackend() {
     jamsFeedContainer.innerHTML = `
       <div style="background:#fee2e2;color:#991b1b;padding:16px;border-radius:12px;font-size:0.9rem">
         ⚠️ <strong>Backend Not Connected</strong><br>
-        Make sure the backend is running in your terminal on <strong>http://localhost:5001</strong>.
+        Make sure the backend is running in your terminal on <strong>https://jampulse.onrender.com/api</strong>.
       </div>
     `;
     resultsCount.innerText = 'Server offline';
