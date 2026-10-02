@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minimal Profile App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+  <!-- Minimal Viewport: Avatar Only -->
+  <div class="relative">
+    <button id="avatarBtn" class="w-20 h-20 rounded-full border-2 border-indigo-500 overflow-hidden shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all focus:outline-none">
+      <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80" alt="Avatar" class="w-full h-full object-cover">
+    </button>
+
+    <!-- 5-Option Dropdown -->
+    <div id="dropdownMenu" class="hidden absolute top-24 -left-16 w-52 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-10 flex flex-col space-y-1">
+      <button onclick="openModal()" class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition">1. Profile Details</button>
+      <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition text-slate-400">2. Security</button>
+      <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition text-slate-400">3. Preferences</button>
+      <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-800 transition text-slate-400">4. Help & Support</button>
+      <hr class="border-slate-800 my-1">
+      <button onclick="handleLogout()" class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-red-500/10 text-red-400 transition font-medium">5. Log Out</button>
+    </div>
+  </div>
+
+  <!-- Profile Edit Modal -->
+  <div id="profileModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-white">Profile Details</h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <!-- Name Field -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Display Name</label>
+        <div class="flex gap-2">
+          <input id="nameInput" type="text" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button id="saveNameBtn" onclick="updateName()" class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-xs px-3.5 py-2 rounded-lg font-medium transition">Save</button>
+        </div>
+        <p id="nameNotice" class="text-xs text-slate-400"></p>
+      </div>
+
+      <!-- Phone Field -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Linked Phone Number</label>
+        <div class="flex gap-2">
+          <input id="phoneInput" type="tel" placeholder="+1 (555) 000-0000" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button id="savePhoneBtn" onclick="updatePhone()" class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-xs px-3.5 py-2 rounded-lg font-medium transition">Link</button>
+        </div>
+        <p id="phoneNotice" class="text-xs text-slate-400"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const avatarBtn = document.getElementById('avatarBtn');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const profileModal = document.getElementById('profileModal');
+    
+    avatarBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', () => dropdownMenu.classList.add('hidden'));
+
+    function openModal() {
+      dropdownMenu.classList.add('hidden');
+      profileModal.classList.remove('hidden');
+      loadUserData();
+    }
+
+    function closeModal() {
+      profileModal.classList.add('hidden');
+    }
+
+    async function loadUserData() {
+      const res = await fetch('/api/user');
+      const data = await res.json();
+
+      const nameInput = document.getElementById('nameInput');
+      const saveNameBtn = document.getElementById('saveNameBtn');
+      const nameNotice = document.getElementById('nameNotice');
+
+      nameInput.value = data.name;
+      nameInput.disabled = !data.canChangeName;
+      saveNameBtn.disabled = !data.canChangeName;
+      nameNotice.textContent = data.canChangeName 
+        ? "You can change your name today (30-day lock after save)." 
+        : `Locked. Next change available in ${data.nameDaysLeft} day(s).`;
+
+      const phoneInput = document.getElementById('phoneInput');
+      const savePhoneBtn = document.getElementById('savePhoneBtn');
+      const phoneNotice = document.getElementById('phoneNotice');
+
+      phoneInput.value = data.phone || '';
+      phoneInput.disabled = !data.canChangePhone;
+      savePhoneBtn.disabled = !data.canChangePhone;
+      savePhoneBtn.textContent = data.phone ? "Update" : "Link";
+      phoneNotice.textContent = data.canChangePhone
+        ? "Phone changes trigger a 90-day cooldown."
+        : `Locked. Next change available in ${data.phoneDaysLeft} day(s).`;
+    }
+
+    async function updateName() {
+      const val = document.getElementById('nameInput').value;
+      const res = await fetch('/api/user/name', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: val })
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error);
+      loadUserData();
+    }
+
+    async function updatePhone() {
+      const val = document.getElementById('phoneInput').value;
+      const res = await fetch('/api/user/phone', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: val })
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error);
+      loadUserData();
+    }
+
+    async function handleLogout() {
+      await fetch('/api/logout', { method: 'POST' });
+      document.body.innerHTML = `
+        <div class="text-center space-y-3">
+          <p class="text-lg text-slate-300">You have been logged out.</p>
+          <button onclick="location.reload()" class="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-medium">Log Back In</button>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
