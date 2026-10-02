@@ -44,6 +44,7 @@ html, body {
   overflow: hidden;
   background-color: var(--bg-app);
   color: var(--text-primary);
+  position: relative;
 }
 
 body {
@@ -55,7 +56,7 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* ==================== 1. HEADER ==================== */
+/* ==================== 1. HEADER (Elevated Above Map) ==================== */
 .app-header {
   flex-shrink: 0;
   min-height: 64px;
@@ -66,7 +67,8 @@ body {
   justify-content: space-between;
   padding: 0 16px;
   gap: 12px;
-  z-index: 100;
+  position: relative;
+  z-index: 2000 !important; /* Above Leaflet 1000 */
   box-shadow: var(--shadow-sm);
 }
 
@@ -244,6 +246,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  position: relative;
+  z-index: 1500 !important; /* Above Map */
 }
 .rail-inner {
   display: flex;
@@ -287,6 +291,7 @@ body {
   min-height: 0;
   overflow: hidden;
   position: relative;
+  z-index: 10;
 }
 
 /* Left Feed Section */
@@ -297,6 +302,8 @@ body {
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--bg-app);
+  position: relative;
+  z-index: 20;
 }
 
 .filter-strip {
@@ -465,16 +472,21 @@ body {
   gap: 6px;
 }
 
-/* Right Map Section */
+/* ==================== 4. RIGHT MAP SECTION (ISOLATED) ==================== */
 .map-section {
   flex: 0 0 45%;
   height: 100%;
   position: relative;
+  z-index: 1 !important;
+  isolation: isolate !important; /* CRITICAL: Traps Leaflet's z-index 1000 inside this box */
 }
 #leafletMap {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
+
 .map-recenter-btn {
   position: absolute;
   bottom: 24px;
@@ -487,13 +499,13 @@ body {
   font-size: 1.2rem;
   box-shadow: var(--shadow-md);
   cursor: pointer;
-  z-index: 800;
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ==================== 4. BUTTONS & UI CONTROLS ==================== */
+/* ==================== 5. BUTTONS & UI CONTROLS ==================== */
 .btn {
   padding: 8px 16px;
   border-radius: var(--radius-full);
@@ -546,7 +558,7 @@ body {
   width: 100%;
 }
 
-/* ==================== 5. FLOATING ACTION BUTTON (FAB) ==================== */
+/* ==================== 6. FLOATING ACTION BUTTON (FAB) ==================== */
 .btn-fab {
   position: fixed;
   bottom: calc(20px + env(safe-area-inset-bottom));
@@ -562,7 +574,7 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-fab);
-  z-index: 1000;
+  z-index: 3000 !important; /* Above Map */
   font-size: 1.5rem;
   outline: none;
 }
@@ -597,16 +609,16 @@ body {
   transform: translateX(0);
 }
 
-/* ==================== 6. MODALS ==================== */
+/* ==================== 7. MODALS (Top Layer) ==================== */
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
+  position: fixed !important;
+  inset: 0 !important;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 9000 !important; /* Above everything */
   padding: 16px;
 }
 .modal-card {
@@ -618,6 +630,7 @@ body {
   max-height: 85vh;
   overflow-y: auto;
   position: relative;
+  z-index: 9010 !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 .modal-large {
@@ -644,7 +657,7 @@ body {
   margin-bottom: 18px;
 }
 
-/* ==================== AUTH MODAL REDESIGNED ==================== */
+/* Auth Modal */
 .auth-modal-card {
   width: 400px;
   padding: 28px 24px 24px 24px;
@@ -682,7 +695,6 @@ body {
   line-height: 1.4;
 }
 
-/* Modern Google Single Button */
 .google-auth-box {
   margin-bottom: 12px;
   display: flex;
@@ -711,7 +723,6 @@ body {
   border-color: #cbd5e1;
 }
 
-/* Segmented Pill Tabs Switcher */
 .auth-tabs-segmented {
   display: flex;
   background: #f1f5f9;
@@ -740,7 +751,6 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* Modern Phone Input with Prefix Badge */
 .phone-input-combo {
   display: flex;
   align-items: center;
@@ -799,7 +809,6 @@ body {
   line-height: 1.45;
 }
 
-/* Base Form Controls */
 .form-group {
   margin-bottom: 12px;
   display: flex;
@@ -839,7 +848,7 @@ body {
   margin-top: 18px;
 }
 
-/* Location Picker Cards */
+/* Location Selector */
 .loc-option-card {
   display: flex;
   align-items: center;
@@ -1006,7 +1015,7 @@ body {
 .text-brand { color: var(--brand); font-weight: 700; }
 .empty-text { font-size: 0.82rem; color: var(--text-muted); }
 
-/* ==================== 7. MODERN INTERACTIVE ARTIST STUDIO ==================== */
+/* ==================== 8. MODERN INTERACTIVE ARTIST STUDIO ==================== */
 .modal-profile-card {
   padding: 0 !important;
   overflow: hidden;
@@ -1016,6 +1025,8 @@ body {
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  position: relative;
+  z-index: 9100 !important;
 }
 
 .profile-hero-banner {
@@ -1330,135 +1341,11 @@ body {
   background: #fee2e2 !important;
 }
 
-/* ==================== 8. MOBILE RESPONSIVE ENGINE ==================== */
-@media (max-width: 900px) {
-  .app-header {
-    height: auto;
-    min-height: 56px;
-    padding: 8px 12px;
-  }
-  
-  .brand-text {
-    font-size: 1.15rem;
-  }
-
-  .location-pill {
-    padding: 4px 8px;
-  }
-
-  .loc-city {
-    max-width: 95px;
-    font-size: 0.76rem;
-  }
-
-  #openHostBtn {
-    display: none;
-  }
-
-  .search-container {
-    display: none;
-  }
-
-  .category-rail {
-    padding: 6px 12px;
-    gap: 8px;
-  }
-
-  .rail-inner {
-    flex: 1;
-    overflow-x: auto;
-  }
-
-  .mobile-view-toggle {
-    display: flex;
-    background: #f1f5f9;
-    border-radius: var(--radius-full);
-    padding: 2px;
-    flex-shrink: 0;
-  }
-
-  .toggle-btn {
-    padding: 4px 10px;
-    border: none;
-    border-radius: var(--radius-full);
-    font-size: 0.74rem;
-    font-weight: 600;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .toggle-btn.active {
-    background: white;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .content-wrapper {
-    flex-direction: column;
-    height: auto;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .feed-section {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    border-right: none;
-  }
-
-  .jams-grid {
-    padding: 12px 12px 90px 12px;
-  }
-
-  .map-section {
-    display: none;
-    flex: 1;
-    width: 100%;
-    height: 100%;
-  }
-
-  .content-wrapper.show-map .feed-section {
-    display: none;
-  }
-
-  .content-wrapper.show-map .map-section {
-    display: block;
-    height: 100%;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .modal-card {
-    padding: 20px 16px;
-    width: 94%;
-    max-height: 85vh;
-  }
-
-  .btn-fab {
-    bottom: calc(18px + env(safe-area-inset-bottom));
-    right: 18px;
-    width: 50px;
-    height: 50px;
-    font-size: 1.35rem;
-  }
-
-  .btn-fab::after {
-    display: none;
-  }
-
-  .avatar-dropdown-menu {
-    width: 230px;
-    max-height: 75vh;
-  }
-}
-
-/* ==================== AVATAR DROPDOWN & COOLDOWN ADDITIONS ==================== */
+/* ==================== 9. AVATAR DROPDOWN (Above Header & Map) ==================== */
 .avatar-menu-container {
   position: relative;
   display: inline-block;
+  z-index: 2500 !important;
 }
 
 .avatar-round-btn {
@@ -1495,7 +1382,7 @@ body {
   border-radius: var(--radius-md);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
   padding: 6px;
-  z-index: 1500;
+  z-index: 3000 !important; /* Above Header & Map */
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1626,4 +1513,129 @@ input:disabled {
   color: #94a3b8 !important;
   cursor: not-allowed;
   border-color: #e2e8f0 !important;
+}
+
+/* ==================== 10. MOBILE RESPONSIVE ENGINE ==================== */
+@media (max-width: 900px) {
+  .app-header {
+    height: auto;
+    min-height: 56px;
+    padding: 8px 12px;
+  }
+  
+  .brand-text {
+    font-size: 1.15rem;
+  }
+
+  .location-pill {
+    padding: 4px 8px;
+  }
+
+  .loc-city {
+    max-width: 95px;
+    font-size: 0.76rem;
+  }
+
+  #openHostBtn {
+    display: none;
+  }
+
+  .search-container {
+    display: none;
+  }
+
+  .category-rail {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .rail-inner {
+    flex: 1;
+    overflow-x: auto;
+  }
+
+  .mobile-view-toggle {
+    display: flex;
+    background: #f1f5f9;
+    border-radius: var(--radius-full);
+    padding: 2px;
+    flex-shrink: 0;
+  }
+
+  .toggle-btn {
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--radius-full);
+    font-size: 0.74rem;
+    font-weight: 600;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .toggle-btn.active {
+    background: white;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .content-wrapper {
+    flex-direction: column;
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .feed-section {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    border-right: none;
+  }
+
+  .jams-grid {
+    padding: 12px 12px 90px 12px;
+  }
+
+  .map-section {
+    display: none;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+  }
+
+  .content-wrapper.show-map .feed-section {
+    display: none;
+  }
+
+  .content-wrapper.show-map .map-section {
+    display: block;
+    height: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .modal-card {
+    padding: 20px 16px;
+    width: 94%;
+    max-height: 85vh;
+  }
+
+  .btn-fab {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    right: 18px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.35rem;
+  }
+
+  .btn-fab::after {
+    display: none;
+  }
+
+  .avatar-dropdown-menu {
+    width: 230px;
+    max-height: 75vh;
+  }
 }
