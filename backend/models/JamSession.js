@@ -1,0 +1,32 @@
+const mongoose = require('mongoose');
+
+const JamSessionSchema = new mongoose.Schema({
+  title: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  hostTeam: { type: String, required: true, trim: true },
+  hostUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  vibe: {
+    type: String,
+    enum: ['Acoustic Unplugged', 'Electric Jam', 'Open Mic', 'Sufi & Classical', 'Chill Electronic', 'Jazz & Blues'],
+    default: 'Acoustic Unplugged'
+  },
+  genres: [{ type: String }],
+  instrumentsNeeded: [{ type: String }],
+  locationName: { type: String, required: true },
+  address: { type: String, default: '' },
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], required: true } // [longitude, latitude]
+  },
+  startTime: { type: Date, required: true },
+  endTime: { type: Date, required: true },
+  rsvpUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  averageRating: { type: Number, default: 0 },
+  ratingCount: { type: Number, default: 0 },
+  status: { type: String, enum: ['upcoming', 'live', 'completed'], default: 'upcoming' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+JamSessionSchema.index({ location: '2dsphere' });
+
+module.exports = mongoose.model('JamSession', JamSessionSchema);
