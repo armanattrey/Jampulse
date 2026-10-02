@@ -683,6 +683,12 @@ body {
 }
 
 /* Modern Google Single Button */
+.google-auth-box {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+
 .btn-social-google {
   background: #ffffff;
   border: 1.5px solid var(--border);
@@ -697,6 +703,7 @@ body {
   gap: 10px;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
 }
 
 .btn-social-google:hover {
@@ -986,10 +993,6 @@ body {
   margin-bottom: 2px;
 }
 
-.google-auth-box {
-  margin-bottom: 10px;
-}
-
 .field-hint {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -1020,6 +1023,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f1f5f9;
 }
 .avatar-large {
   width: 100%;
@@ -1056,11 +1060,52 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* Multi-Select Checkbox Chips Grid */
+.instruments-multi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+.chip-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.chip-checkbox input {
+  display: none;
+}
+.chip-checkbox span {
+  width: 100%;
+  display: inline-block;
+  padding: 7px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-align: center;
+  background: #f1f5f9;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+.chip-checkbox input:checked + span {
+  background: var(--brand);
+  color: #ffffff;
+  border-color: var(--brand);
+}
+
 .divider-line {
   border: none;
   height: 1px;
   background: var(--border);
   margin: 18px 0;
+}
+.settings-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .text-danger {
   color: #ef4444 !important;

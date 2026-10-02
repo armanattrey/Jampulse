@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('path');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -12,7 +13,7 @@ const JamSession = require('./models/JamSession');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Allow mobile apps (Capacitor/WebView) and browser requests
+// 1. Core Middleware
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -21,19 +22,21 @@ app.use(cors({
 
 app.use(express.json());
 
-// MongoDB connection
+// 2. Serve Static Assets (Frontend)
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// 3. Database Connection & Seeding
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/jamcircle';
 
 mongoose.connect(MONGO_URI)
   .then(async () => {
-    console.log('✅ Connected to MongoDB (jamcircle)');
+    console.log('✅ Connected to MongoDB Atlas (jamcircle)');
     await seedDemoJams();
   })
   .catch((err) => {
     console.error('❌ MongoDB Connection Error:', err.message);
   });
 
-// Seed data with realistic music events around Delhi NCR / Gurgaon coords
 async function seedDemoJams() {
   try {
     const count = await JamSession.countDocuments();
@@ -101,24 +104,20 @@ async function seedDemoJams() {
   }
 }
 
-// Routes
+// 4. API Endpoints
 app.use('/api/auth', authRoutes);
 app.use('/api/jams', jamRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 
-app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamCircle Engine' }));
-app.get('/', (req, res) => res.json({ status: 'live', message: 'JamPulse API is running' }));
+app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamPulse API Engine' }));
 
-app.listen(PORT, () => {
-  console.log(`🚀 JamCircle server running at http://localhost:${PORT}`);
-});
-const path = require('path');
-
-// Place this right AFTER your middleware (cors, express.json), and BEFORE your API routes:
-app.use(express.static(path.join(__dirname, '../frontend')));
-
-// Place this at the VERY BOTTOM of server.js (after all /api routes):
+// 5. Client-Side Routing Fallback (Must be after all API routes)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+// 6. Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 JamPulse server running at http://localhost:${PORT}`);
 });

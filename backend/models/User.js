@@ -8,12 +8,12 @@ const UserSchema = new mongoose.Schema({
   },
   phone: { 
     type: String, 
-    sparse: true, 
+    index: { unique: true, sparse: true }, 
     trim: true 
   },
   email: { 
     type: String, 
-    sparse: true, 
+    index: { unique: true, sparse: true }, 
     lowercase: true, 
     trim: true 
   },
@@ -23,11 +23,13 @@ const UserSchema = new mongoose.Schema({
     default: 'phone' 
   },
   instruments: [{ 
-    type: String 
+    type: String,
+    trim: true 
   }],
   bio: { 
     type: String, 
-    default: 'Vibing & strumming with open ears.' 
+    default: 'Vibing & strumming with open ears.',
+    trim: true 
   },
   role: { 
     type: String, 
@@ -44,22 +46,13 @@ const UserSchema = new mongoose.Schema({
   },
   avatarUrl: { 
     type: String, 
-    default: '' 
+    default: '',
+    trim: true 
   },
   joinedAt: { 
     type: Date, 
     default: Date.now 
   }
 });
-
-// Explicit partial index to guarantee uniqueness only when non-empty
-UserSchema.index(
-  { email: 1 }, 
-  { unique: true, partialFilterExpression: { email: { $type: 'string' } } }
-);
-UserSchema.index(
-  { phone: 1 }, 
-  { unique: true, partialFilterExpression: { phone: { $type: 'string' } } }
-);
 
 module.exports = mongoose.model('User', UserSchema);

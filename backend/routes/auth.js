@@ -6,7 +6,7 @@ const nodemailer = require('nodemailer');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'jampulse_live_jwt_secret_key_2026';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // In-Memory OTP Store: key -> { code, expiresAt }
@@ -17,36 +17,65 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Authentication Gate Middleware
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authorization token missing or malformed.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+  }
+}
+
 // -----------------------------------------------------------------------------
-// Bulletproof User Resolver (Prevents Enum Crashes & E11000 Duplicate Key Errors)
+// Bulletproof User Resolver (Immune to Enum & E11000 Duplicate Key Collisions)
 // -----------------------------------------------------------------------------
-async function findOrCreateUser({ email, phone, name, role, authProvider, avatarUrl }) {
+async function findOrCreateUser({ email, phone, name, role, authProvider, avatarUrl, instruments }) {
   let user = null;
 
-  // 1. Check existing account by email
+  // 1. Search existing record by email
   if (email) {
     user = await User.findOne({ email: email.toLowerCase().trim() });
   }
 
-  // 2. Check existing account by phone
+  // 2. Search existing record by phone
   if (!user && phone) {
     user = await User.findOne({ phone: phone.trim() });
   }
 
+  // If user already exists, backfill missing profile fields
   if (user) {
+    let modified = false;
+    if (avatarUrl && !user.avatarUrl) {
+      user.avatarUrl = avatarUrl;
+      modified = true;
+    }
+    if (Array.isArray(instruments) && instruments.length > 0 && (!user.instruments || user.instruments.length === 0)) {
+      user.instruments = instruments;
+      modified = true;
+    }
+    if (modified) await user.save();
     return user;
   }
 
-  // Guaranteed safe role fallback that always passes Mongoose validation
-  const validRoles = ['Guitarist', 'Vocalist', 'Drummer/Percussion', 'Bassist', 'Keys', 'Listener/Fan'];
+  // Fallback role check to avoid schema validation crashes
+  const validRoles = ['Guitarist', 'Vocalist', 'Drummer/Percussion', 'Bassist', 'Keys', 'Listener/Fan', 'Musician'];
   const safeRole = validRoles.includes(role) ? role : 'Guitarist';
 
-  // 3. Prepare fresh user payload
+  // 3. Prepare fresh document payload
   const newUserData = {
     name: name?.trim() || (email ? email.split('@')[0] : 'Jammer'),
     role: safeRole,
     authProvider: authProvider || 'guest',
-    avatarUrl: avatarUrl || ''
+    avatarUrl: avatarUrl || '',
+    instruments: Array.isArray(instruments) ? instruments : []
   };
 
   if (email) newUserData.email = email.toLowerCase().trim();
@@ -56,20 +85,15 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
     user = await User.create(newUserData);
     return user;
   } catch (err) {
-    console.warn('Initial User.create error:', err.message);
+    console.warn('Initial User.create notification:', err.message);
 
-    // If MongoDB throws E11000 duplicate key error, fetch existing account
+    // Handle MongoDB duplicate key collision (code 11000)
     if (err.code === 11000) {
-      if (email) {
-        user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (user) return user;
-      }
-      if (phone) {
-        user = await User.findOne({ phone: phone.trim() });
-        if (user) return user;
-      }
+      if (email) user = await User.findOne({ email: email.toLowerCase().trim() });
+      if (!user && phone) user = await User.findOne({ phone: phone.trim() });
+      if (user) return user;
 
-      // If caused by null unique index collisions, assign fallback unique value
+      // Handle sparse null index collisions
       if (!newUserData.phone && err.message.includes('phone')) {
         newUserData.phone = `+91000${Date.now().toString().slice(-7)}`;
       }
@@ -86,34 +110,59 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
 }
 
 // -----------------------------------------------------------------------------
-// 1. PHONE AUTHENTICATION
+// 1. SESSION VERIFICATION & PROFILE SYNC
+// -----------------------------------------------------------------------------
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User does not exist.' });
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/profile', requireAuth, async (req, res) => {
+  try {
+    const { name, role, bio, instruments } = req.body;
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User does not exist.' });
+
+    if (name) user.name = name.trim();
+    if (role) user.role = role;
+    if (bio !== undefined) user.bio = bio;
+    if (Array.isArray(instruments)) user.instruments = instruments;
+
+    await user.save();
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// 2. PHONE AUTHENTICATION (Fast2SMS Gateway)
 // -----------------------------------------------------------------------------
 router.post('/phone/send-otp', async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ error: 'Phone number is required.' });
-    }
+    if (!phone) return res.status(400).json({ error: 'Phone number is required.' });
 
     const parsedNumber = parsePhoneNumberFromString(phone, 'IN');
-
     if (!parsedNumber || !parsedNumber.isValid()) {
-      return res.status(400).json({
-        error: 'Invalid phone number. Please enter a valid 10-digit Indian mobile number.'
-      });
+      return res.status(400).json({ error: 'Invalid 10-digit Indian mobile number.' });
     }
 
     const internationalFormat = parsedNumber.format('E.164');
     const nationalFormat = parsedNumber.formatNational();
+    const rawNationalDigits = parsedNumber.nationalNumber;
 
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 mins
-    otpStore.set(internationalFormat, { code: otp, expiresAt });
+    otpStore.set(internationalFormat, { code: otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
     if (process.env.SMS_API_KEY) {
       try {
-        const rawDigits = parsedNumber.nationalNumber;
-        await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        const smsResponse = await fetch('https://www.fast2sms.com/dev/bulkV2', {
           method: 'POST',
           headers: {
             authorization: process.env.SMS_API_KEY,
@@ -122,28 +171,28 @@ router.post('/phone/send-otp', async (req, res) => {
           body: JSON.stringify({
             route: 'otp',
             variables_values: otp,
-            numbers: rawDigits
+            numbers: rawNationalDigits
           })
         });
-
-        return res.json({
-          success: true,
-          message: `SMS OTP dispatched to ${nationalFormat}`
-        });
+        const smsData = await smsResponse.json();
+        if (!smsData.return) {
+          console.warn('Fast2SMS Dispatch Notice:', smsData.message);
+        }
       } catch (smsErr) {
-        console.error('SMS Gateway Error:', smsErr.message);
+        console.error('Fast2SMS Gateway Error:', smsErr.message);
       }
+    } else {
+      console.log(`\n========================================`);
+      console.log(`📲 [PHONE OTP GENERATED - DEV MODE]`);
+      console.log(`Target: ${internationalFormat} (${nationalFormat})`);
+      console.log(`OTP Code: ${otp}`);
+      console.log(`========================================\n`);
     }
-
-    console.log(`\n========================================`);
-    console.log(`📲 [PHONE OTP GENERATED]`);
-    console.log(`Target: ${internationalFormat} (${nationalFormat})`);
-    console.log(`OTP Code: ${otp}`);
-    console.log(`========================================\n`);
 
     res.json({
       success: true,
-      message: `Code generated for ${nationalFormat}. (Check Render logs or use dev PIN 999999)`,
+      message: `Verification code dispatched to ${nationalFormat}`,
+      formattedNumber: internationalFormat,
       isDevMode: !process.env.SMS_API_KEY
     });
   } catch (err) {
@@ -153,10 +202,8 @@ router.post('/phone/send-otp', async (req, res) => {
 
 router.post('/phone/verify-otp', async (req, res) => {
   try {
-    const { phone, otp, name, role } = req.body;
-    if (!phone || !otp) {
-      return res.status(400).json({ error: 'Phone and verification code are required.' });
-    }
+    const { phone, otp, name, role, instruments } = req.body;
+    if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required.' });
 
     const parsedNumber = parsePhoneNumberFromString(phone, 'IN');
     if (!parsedNumber || !parsedNumber.isValid()) {
@@ -172,13 +219,9 @@ router.post('/phone/verify-otp', async (req, res) => {
     if (!isMatch && !isDevBypass) {
       if (record && Date.now() > record.expiresAt) {
         otpStore.delete(formattedNumber);
-        return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+        return res.status(400).json({ error: 'OTP has expired. Please request a new code.' });
       }
-      return res.status(400).json({ 
-        error: process.env.SMS_API_KEY 
-          ? 'Incorrect verification code.' 
-          : 'Incorrect code. In dev mode without SMS API, enter the code from Render logs or test PIN 999999.' 
-      });
+      return res.status(400).json({ error: 'Incorrect verification code.' });
     }
 
     otpStore.delete(formattedNumber);
@@ -187,7 +230,8 @@ router.post('/phone/verify-otp', async (req, res) => {
       phone: formattedNumber,
       name: name?.trim() || `Jammer_${formattedNumber.slice(-4)}`,
       role: role || 'Guitarist',
-      authProvider: 'phone'
+      authProvider: 'phone',
+      instruments: Array.isArray(instruments) ? instruments : []
     });
 
     const token = jwt.sign(
@@ -203,7 +247,7 @@ router.post('/phone/verify-otp', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 2. EMAIL AUTHENTICATION
+// 3. EMAIL AUTHENTICATION (Nodemailer Transporter)
 // -----------------------------------------------------------------------------
 router.post('/email/send-otp', async (req, res) => {
   try {
@@ -212,27 +256,26 @@ router.post('/email/send-otp', async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-    otpStore.set(cleanEmail, { code: otp, expiresAt });
+    otpStore.set(cleanEmail, { code: otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-
-    if (smtpUser && smtpPass) {
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
       try {
         const mailTransporter = nodemailer.createTransport({
           service: 'gmail',
-          auth: { user: smtpUser, pass: smtpPass }
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
         });
 
         await mailTransporter.sendMail({
-          from: `"JamPulse Security" <${smtpUser}>`,
+          from: `"JamPulse Security" <${process.env.SMTP_USER}>`,
           to: cleanEmail,
           subject: `${otp} is your JamPulse verification code`,
           html: `
             <div style="font-family:sans-serif;padding:24px;background:#f8fafc;border-radius:12px;max-width:480px;margin:0 auto;border:1px solid #e2e8f0">
               <h2 style="color:#e11d48;margin:0 0 12px 0">Welcome to JamPulse 🎸</h2>
-              <p style="color:#334155;font-size:15px;line-height:1.5">Here is your one-time verification code to sign in:</p>
+              <p style="color:#334155;font-size:15px;line-height:1.5">Here is your single-use verification code to sign in:</p>
               <div style="font-size:32px;font-weight:800;letter-spacing:6px;color:#0f172a;background:#ffffff;padding:16px;border-radius:8px;text-align:center;border:1.5px dashed #cbd5e1;margin:20px 0">
                 ${otp}
               </div>
@@ -241,29 +284,19 @@ router.post('/email/send-otp', async (req, res) => {
           `
         });
 
-        return res.json({
-          success: true,
-          message: `Verification code sent to ${cleanEmail}. Check your inbox or spam.`
-        });
+        return res.json({ success: true, message: `Verification code delivered to ${cleanEmail}` });
       } catch (mailErr) {
-        console.error('SMTP Mail Dispatch Error:', mailErr);
-        return res.status(500).json({
-          error: `Email delivery failed: ${mailErr.message}. Ensure your 16-character Google App Password is correct.`
-        });
+        return res.status(500).json({ error: `SMTP delivery failed: ${mailErr.message}` });
       }
-    } else {
-      console.log(`\n========================================`);
-      console.log(`📧 [EMAIL OTP GENERATED - NO SMTP ENV FOUND]`);
-      console.log(`Target: ${cleanEmail}`);
-      console.log(`OTP Code: ${otp}`);
-      console.log(`========================================\n`);
-
-      return res.json({
-        success: true,
-        message: `SMTP not configured on Render. Code printed in server logs. (Dev test code: 999999)`,
-        isDevMode: true
-      });
     }
+
+    console.log(`\n========================================`);
+    console.log(`📧 [EMAIL OTP GENERATED - DEV MODE]`);
+    console.log(`Target: ${cleanEmail}`);
+    console.log(`OTP Code: ${otp}`);
+    console.log(`========================================\n`);
+
+    res.json({ success: true, message: `Verification code generated for ${cleanEmail}`, isDevMode: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -271,8 +304,8 @@ router.post('/email/send-otp', async (req, res) => {
 
 router.post('/email/verify-otp', async (req, res) => {
   try {
-    const { email, otp, name, role } = req.body;
-    if (!email || !otp) return res.status(400).json({ error: 'Email and code are required.' });
+    const { email, otp, name, role, instruments } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required.' });
 
     const cleanEmail = email.trim().toLowerCase();
     const record = otpStore.get(cleanEmail);
@@ -294,7 +327,8 @@ router.post('/email/verify-otp', async (req, res) => {
       email: cleanEmail,
       name: name?.trim() || cleanEmail.split('@')[0],
       role: role || 'Vocalist',
-      authProvider: 'email'
+      authProvider: 'email',
+      instruments: Array.isArray(instruments) ? instruments : []
     });
 
     const token = jwt.sign(
@@ -310,19 +344,32 @@ router.post('/email/verify-otp', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 3. GOOGLE SIGN-IN / DEMO AUTH
+// 4. GOOGLE SIGN-IN (Access Token Exchange & GIS ID Tokens)
 // -----------------------------------------------------------------------------
 router.post('/google', async (req, res) => {
   try {
-    const { credential, email, name, picture } = req.body;
-    let googleEmail = email;
-    let googleName = name;
-    let googlePic = picture;
+    const { credential, accessToken } = req.body;
+    let googleEmail = '';
+    let googleName = '';
+    let googlePic = '';
 
-    // Decode or verify credential payload if passed
-    if (credential) {
+    // 1. Direct Access Token UserInfo resolution
+    if (accessToken) {
+      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (userInfoRes.ok) {
+        const profileData = await userInfoRes.json();
+        googleEmail = profileData.email;
+        googleName = profileData.name;
+        googlePic = profileData.picture;
+      }
+    }
+
+    // 2. Google Identity Services ID Token resolution
+    if (!googleEmail && credential) {
       try {
-        if (process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.includes('your_google_client_id')) {
+        if (process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.includes('placeholder')) {
           const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -342,32 +389,20 @@ router.post('/google', async (req, res) => {
         }
       } catch (tokenErr) {
         console.warn('Google credential parsing fallback:', tokenErr.message);
-        try {
-          const parts = credential.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-            googleEmail = payload.email || googleEmail;
-            googleName = payload.name || googleName;
-            googlePic = payload.picture || googlePic;
-          }
-        } catch (_) {}
       }
     }
 
     if (!googleEmail) {
-      googleEmail = 'musician.artist@gmail.com';
-      googleName = 'Google Jammer';
+      return res.status(400).json({ error: 'Unable to authenticate Google account. Please try again.' });
     }
 
     const cleanEmail = googleEmail.toLowerCase().trim();
-
-    // Use 'Guitarist' to avoid any schema enum mismatches
     const user = await findOrCreateUser({
       email: cleanEmail,
-      name: googleName || 'Google Jammer',
+      name: googleName || cleanEmail.split('@')[0],
       avatarUrl: googlePic || '',
       authProvider: 'google',
-      role: 'Guitarist'
+      role: 'Musician'
     });
 
     const token = jwt.sign(
@@ -384,7 +419,7 @@ router.post('/google', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 4. QUICK GUEST MODE
+// 5. QUICK GUEST MODE
 // -----------------------------------------------------------------------------
 router.post('/guest', async (req, res) => {
   try {
