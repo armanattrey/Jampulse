@@ -48,6 +48,7 @@ const authModal = document.getElementById('authModal');
 const hostModal = document.getElementById('hostModal');
 const reviewModal = document.getElementById('reviewModal');
 const contactModal = document.getElementById('contactModal');
+const profileModal = document.getElementById('profileModal');
 
 const openLoginModalBtn = document.getElementById('openLoginModalBtn');
 const openHostBtn = document.getElementById('openHostBtn');
@@ -55,6 +56,7 @@ const unauthControls = document.getElementById('unauthControls');
 const authControls = document.getElementById('authControls');
 const navUserName = document.getElementById('navUserName');
 const avatarInitial = document.getElementById('avatarInitial');
+const navAvatarImg = document.getElementById('navAvatarImg');
 const logoutBtn = document.getElementById('logoutBtn');
 
 // --- 1. Map Initialization & Geography ---
@@ -512,7 +514,77 @@ function openContactModal(jam) {
   openModal('contactModal');
 }
 
-// --- 6. Complete Authentication Flow ---
+// --- 6. Artist Profile & Settings Center ---
+window.openProfileDrawer = () => {
+  if (!currentUser) return;
+
+  const nameDisp = document.getElementById('profileNameDisplay');
+  const emailDisp = document.getElementById('profileEmailDisplay');
+  const roleBadge = document.getElementById('profileRoleBadge');
+  const largeImg = document.getElementById('profileLargeAvatar');
+  const largeInitial = document.getElementById('profileLargeInitial');
+
+  const editName = document.getElementById('editArtistName');
+  const editRole = document.getElementById('editArtistRole');
+  const editBio = document.getElementById('editArtistBio');
+
+  if (nameDisp) nameDisp.innerText = currentUser.name || 'Artist';
+  if (emailDisp) emailDisp.innerText = currentUser.email || currentUser.phone || 'JamPulse Member';
+  if (roleBadge) roleBadge.innerText = currentUser.role || 'Guitarist';
+
+  if (editName) editName.value = currentUser.name || '';
+  if (editRole) editRole.value = currentUser.role || 'Guitarist';
+  if (editBio) editBio.value = currentUser.bio || '';
+
+  if (largeImg && largeInitial) {
+    if (currentUser.avatarUrl) {
+      largeImg.src = currentUser.avatarUrl;
+      largeImg.classList.remove('hidden');
+      largeInitial.classList.add('hidden');
+    } else {
+      largeImg.classList.add('hidden');
+      largeInitial.classList.remove('hidden');
+      largeInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+    }
+  }
+
+  openModal('profileModal');
+};
+
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+if (saveProfileBtn) {
+  saveProfileBtn.addEventListener('click', () => {
+    if (!currentUser) return;
+
+    const updatedName = document.getElementById('editArtistName')?.value.trim();
+    const updatedRole = document.getElementById('editArtistRole')?.value;
+    const updatedBio = document.getElementById('editArtistBio')?.value.trim();
+
+    currentUser.name = updatedName || currentUser.name;
+    currentUser.role = updatedRole || currentUser.role;
+    currentUser.bio = updatedBio !== undefined ? updatedBio : currentUser.bio;
+
+    localStorage.setItem('jam_auth_user', JSON.stringify(currentUser));
+    updateAuthUI();
+    closeModals();
+    alert('Profile updated successfully!');
+  });
+}
+
+const drawerLogoutBtn = document.getElementById('drawerLogoutBtn');
+if (drawerLogoutBtn) {
+  drawerLogoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('jam_auth_token');
+    localStorage.removeItem('jam_auth_user');
+    token = null;
+    currentUser = null;
+    closeModals();
+    updateAuthUI();
+    fetchJamsFromBackend();
+  });
+}
+
+// --- 7. Complete Authentication Flow ---
 
 // Tab Switching
 const tabPhone = document.getElementById('tabPhone');
@@ -748,28 +820,49 @@ function completeAuth(jwtToken, user) {
 }
 
 function updateAuthUI() {
+  const localAvatarImg = document.getElementById('navAvatarImg');
+  const localAvatarInitial = document.getElementById('avatarInitial');
+  const localUserName = document.getElementById('navUserName');
+
   if (token && currentUser) {
     unauthControls.classList.add('hidden');
     authControls.classList.remove('hidden');
-    navUserName.innerText = currentUser.name || 'Artist';
-    avatarInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+    if (localUserName) localUserName.innerText = currentUser.name || 'Artist';
+
+    if (currentUser.avatarUrl && localAvatarImg) {
+      localAvatarImg.src = currentUser.avatarUrl;
+      localAvatarImg.classList.remove('hidden');
+      if (localAvatarInitial) localAvatarInitial.classList.add('hidden');
+    } else {
+      if (localAvatarImg) localAvatarImg.classList.add('hidden');
+      if (localAvatarInitial) {
+        localAvatarInitial.classList.remove('hidden');
+        localAvatarInitial.innerText = (currentUser.name || 'U').charAt(0).toUpperCase();
+      }
+    }
   } else {
     unauthControls.classList.remove('hidden');
     authControls.classList.add('hidden');
   }
 }
 
-logoutBtn.addEventListener('click', () => {
-  localStorage.removeItem('jam_auth_token');
-  localStorage.removeItem('jam_auth_user');
-  token = null;
-  currentUser = null;
-  updateAuthUI();
-  fetchJamsFromBackend();
-});
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    localStorage.removeItem('jam_auth_token');
+    localStorage.removeItem('jam_auth_user');
+    token = null;
+    currentUser = null;
+    updateAuthUI();
+    fetchJamsFromBackend();
+  });
+}
 
-// --- 7. Modals & UI Triggers ---
-window.openModal = (id) => document.getElementById(id).classList.remove('hidden');
+// --- 8. Modals & UI Triggers ---
+window.openModal = (id) => {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+};
 
 window.closeModals = () => {
   authModal.classList.add('hidden');
@@ -777,6 +870,7 @@ window.closeModals = () => {
   reviewModal.classList.add('hidden');
   locationModal.classList.add('hidden');
   contactModal.classList.add('hidden');
+  if (profileModal) profileModal.classList.add('hidden');
 
   document.getElementById('phoneStep1').classList.remove('hidden');
   document.getElementById('phoneStep2').classList.add('hidden');

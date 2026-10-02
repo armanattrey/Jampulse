@@ -55,10 +55,12 @@
         <button class="btn btn-subtle" id="openLoginModalBtn">Sign In</button>
       </div>
 
-      <div id="authControls" class="user-chip hidden">
+      <!-- Interactive User Profile Pill -->
+      <div id="authControls" class="user-chip hidden" onclick="openProfileDrawer()" title="View Profile & Settings">
+        <img id="navAvatarImg" class="user-avatar-img hidden" alt="Avatar" />
         <div class="user-avatar" id="avatarInitial" aria-hidden="true">U</div>
         <span class="user-name" id="navUserName">Artist</span>
-        <button class="btn-logout" id="logoutBtn" title="Log Out" aria-label="Log Out">✕</button>
+        <span class="chevron-sm">⚙️</span>
       </div>
     </div>
   </header>
@@ -165,10 +167,10 @@
         <p>Connect with local musicians, discover jams, or host your circle.</p>
       </div>
 
-      <!-- Single Primary Google Button -->
+      <!-- Primary Google Sign-In Container -->
       <div class="google-auth-box">
-        <div id="googleOneTapBtn" style="display:none;"></div>
-        <button class="btn btn-social-google btn-block" id="simulatedGoogleBtn" type="button">
+        <div id="googleOneTapBtn" style="display: flex; justify-content: center; width: 100%;"></div>
+        <button class="btn btn-social-google btn-block hidden" id="simulatedGoogleBtn" type="button">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
             <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
@@ -385,10 +387,61 @@
           💬 Message on WhatsApp
         </a>
         <button id="inAppContactBtn" class="btn btn-brand" type="button">
-          ✉️ Send In-App Message
+          ✉️️ Send In-App Message
         </button>
         <button id="secureCallBtn" class="btn btn-outline" type="button">
           📞 Secure Voice Call (Hidden Number)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Artist Profile & Settings Center Modal -->
+  <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <div class="modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
+      
+      <div class="profile-header-card">
+        <div class="profile-avatar-large-wrapper">
+          <img id="profileLargeAvatar" class="avatar-large hidden" src="" alt="User Avatar" />
+          <div id="profileLargeInitial" class="avatar-large-fallback">U</div>
+        </div>
+        <h3 id="profileNameDisplay">Artist Name</h3>
+        <p id="profileEmailDisplay" class="profile-subtext">user@email.com</p>
+        <span id="profileRoleBadge" class="badge-role">Guitarist</span>
+      </div>
+
+      <div class="profile-sections">
+        <div class="form-group">
+          <label for="editArtistName">Artist / Display Name</label>
+          <input type="text" id="editArtistName" placeholder="Your name or band handle" />
+        </div>
+
+        <div class="form-group">
+          <label for="editArtistRole">Primary Role / Instrument</label>
+          <select id="editArtistRole">
+            <option value="Guitarist">Guitarist</option>
+            <option value="Vocalist">Vocalist</option>
+            <option value="Drummer/Percussion">Drummer / Percussion</option>
+            <option value="Bassist">Bassist</option>
+            <option value="Keys">Keyboard / Piano</option>
+            <option value="Listener/Fan">Listener / Fan</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="editArtistBio">Bio</label>
+          <textarea id="editArtistBio" rows="2" placeholder="Tell nearby jammers what styles and genres you play..."></textarea>
+        </div>
+
+        <button class="btn btn-brand btn-block mt-3" id="saveProfileBtn" type="button">Save Profile Details</button>
+      </div>
+
+      <hr class="divider-line" />
+
+      <div class="settings-actions-stack">
+        <button class="btn btn-outline btn-block text-danger" id="drawerLogoutBtn" type="button">
+          🚪 Sign Out of JamPulse
         </button>
       </div>
     </div>
