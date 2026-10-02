@@ -1,74 +1,137 @@
 const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
+require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
+const jamRoutes = require('./routes/jams');
+const reviewRoutes = require('./routes/reviews');
+const chatRoutes = require('./routes/chat');
+const JamSession = require('./models/JamSession');
+
 const app = express();
+const PORT = process.env.PORT || 5001;
+
+// 1. Core Middleware
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
-app.use(express.static('public'));
 
-const COOLDOWNS = {
-  NAME_MS: 30 * 24 * 60 * 60 * 1000,
-  PHONE_MS: 90 * 24 * 60 * 60 * 1000
-};
+// 2. Resolve Static Assets Directory (checks ../frontend, ../public, or ./public)
+const possibleFrontendPaths = [
+  path.join(__dirname, '../frontend'),
+  path.join(__dirname, 'frontend'),
+  path.join(__dirname, '../public'),
+  path.join(__dirname, 'public')
+];
 
-// In-memory demo user store
-let currentUser = {
-  id: "usr_101",
-  name: "Alex Mercer",
-  phone: "",
-  lastNameChange: null,
-  lastPhoneChange: null
-};
+let staticDir = possibleFrontendPaths.find(p => fs.existsSync(p)) || path.join(__dirname, '../frontend');
+app.use(express.static(staticDir));
 
-app.get('/api/user', (req, res) => {
-  const now = Date.now();
-  const nameCooldownRemaining = currentUser.lastNameChange
-    ? Math.max(0, COOLDOWNS.NAME_MS - (now - currentUser.lastNameChange))
-    : 0;
+// 3. Database Connection & Seeding
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/jamcircle';
 
-  const phoneCooldownRemaining = (currentUser.phone && currentUser.lastPhoneChange)
-    ? Math.max(0, COOLDOWNS.PHONE_MS - (now - currentUser.lastPhoneChange))
-    : 0;
-
-  res.json({
-    ...currentUser,
-    nameDaysLeft: Math.ceil(nameCooldownRemaining / (1000 * 60 * 60 * 24)),
-    phoneDaysLeft: Math.ceil(phoneCooldownRemaining / (1000 * 60 * 60 * 24)),
-    canChangeName: nameCooldownRemaining === 0,
-    canChangePhone: phoneCooldownRemaining === 0
+mongoose.connect(MONGO_URI)
+  .then(async () => {
+    console.log('✅ Connected to MongoDB Atlas (jamcircle)');
+    await seedDemoJams();
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err.message);
   });
-});
 
-app.patch('/api/user/name', (req, res) => {
-  const { name } = req.body;
-  const now = Date.now();
-  
-  if (currentUser.lastNameChange && (now - currentUser.lastNameChange) < COOLDOWNS.NAME_MS) {
-    const daysLeft = Math.ceil((COOLDOWNS.NAME_MS - (now - currentUser.lastNameChange)) / (1000 * 60 * 60 * 24));
-    return res.status(403).json({ error: `Name locked for ${daysLeft} more day(s).` });
+async function seedDemoJams() {
+  try {
+    const count = await JamSession.countDocuments();
+    if (count === 0) {
+      const now = new Date();
+      const mockUserId = new mongoose.Types.ObjectId();
+
+      await JamSession.create([
+        {
+          title: "Sunset Unplugged Vibes & Sufi Jam",
+          description: "Open vocal & guitar circle under the trees. Beginners, pros, cajonists and listeners all welcome to sit and sing along!",
+          hostTeam: "Acoustic Nomads",
+          hostUser: mockUserId,
+          vibe: "Acoustic Unplugged",
+          genres: ["Indie Folk", "Sufi", "Pop Classics"],
+          instrumentsNeeded: ["Flute", "Djembe", "Harmonies"],
+          locationName: "Amphitheater, Sector 29 Leisure Valley",
+          address: "Leisure Valley Park, Gurugram",
+          location: { type: "Point", coordinates: [77.0688, 28.4682] },
+          startTime: new Date(now.getTime() + 1000 * 60 * 45),
+          endTime: new Date(now.getTime() + 1000 * 60 * 240),
+          averageRating: 4.9,
+          ratingCount: 18,
+          status: "live"
+        },
+        {
+          title: "Electric Blues & Hard Rock Improv",
+          description: "We bring standard amps, cables & mic stands. Bring pedals, electric guitars or sax! Let's build spontaneous grooves.",
+          hostTeam: "The High Gain Collective",
+          hostUser: mockUserId,
+          vibe: "Electric Jam",
+          genres: ["Classic Rock", "Blues", "Funk"],
+          instrumentsNeeded: ["Bass", "Lead Vocals", "Keyboard"],
+          locationName: "CyberHub Rooftop Greens",
+          address: "DLF CyberHub, DLF Phase 2",
+          location: { type: "Point", coordinates: [77.0878, 28.4952] },
+          startTime: new Date(now.getTime() + 1000 * 60 * 180),
+          endTime: new Date(now.getTime() + 1000 * 60 * 360),
+          averageRating: 4.7,
+          ratingCount: 29,
+          status: "upcoming"
+        },
+        {
+          title: "Lo-Fi Beats, Keys & Ambient Chill",
+          description: "Chill listening vibe with synths, handpans, acoustic guitars, and coffee.",
+          hostTeam: "Underground Frequency",
+          hostUser: mockUserId,
+          vibe: "Chill Electronic",
+          genres: ["Lo-Fi", "Neo Soul", "Ambient"],
+          instrumentsNeeded: ["Keys", "Melodica"],
+          locationName: "Aravali Biodiversity Park Trail Lawn",
+          address: "Near Guru Dronacharya Metro, MG Road",
+          location: { type: "Point", coordinates: [77.1065, 28.4891] },
+          startTime: new Date(now.getTime() + 1000 * 60 * 300),
+          endTime: new Date(now.getTime() + 1000 * 60 * 480),
+          averageRating: 5.0,
+          ratingCount: 8,
+          status: "upcoming"
+        }
+      ]);
+      console.log('🎸 Seeded 3 rich musical jam sessions for exploration.');
+    }
+  } catch (e) {
+    console.error('Error seeding data:', e.message);
   }
+}
 
-  currentUser.name = name.trim();
-  currentUser.lastNameChange = now;
-  res.json({ success: true, user: currentUser });
-});
+// 4. API Endpoints
+app.use('/api/auth', authRoutes);
+app.use('/api/jams', jamRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/chat', chatRoutes);
 
-app.patch('/api/user/phone', (req, res) => {
-  const { phone } = req.body;
-  const now = Date.now();
+app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamPulse API Engine' }));
 
-  if (currentUser.phone && currentUser.lastPhoneChange && (now - currentUser.lastPhoneChange) < COOLDOWNS.PHONE_MS) {
-    const daysLeft = Math.ceil((COOLDOWNS.PHONE_MS - (now - currentUser.lastPhoneChange)) / (1000 * 60 * 60 * 24));
-    return res.status(403).json({ error: `Phone locked for ${daysLeft} more day(s).` });
+// 5. Client-Side Routing Fallback
+app.get('*', (req, res) => {
+  const indexPath = path.join(staticDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend index.html not found.');
   }
-
-  currentUser.phone = phone.trim();
-  currentUser.lastPhoneChange = now;
-  res.json({ success: true, user: currentUser });
 });
 
-app.post('/api/logout', (req, res) => {
-  res.json({ success: true, message: "Logged out" });
-});
-
-app.listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
+// 6. Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 JamPulse server running at http://localhost:${PORT}`);
 });
