@@ -18,6 +18,70 @@ function generateOTP() {
 }
 
 // -----------------------------------------------------------------------------
+// Bulletproof User Resolver (Immune to MongoDB E11000 null-index collisions)
+// -----------------------------------------------------------------------------
+async function findOrCreateUser({ email, phone, name, role, authProvider, avatarUrl }) {
+  let user = null;
+
+  // 1. Search by email if available
+  if (email) {
+    user = await User.findOne({ email: email.toLowerCase().trim() });
+  }
+
+  // 2. Search by phone if not found and phone provided
+  if (!user && phone) {
+    user = await User.findOne({ phone: phone.trim() });
+  }
+
+  if (user) {
+    return user;
+  }
+
+  // 3. User does not exist, build new account payload
+  const newUserData = {
+    name: name?.trim() || (email ? email.split('@')[0] : 'Jammer'),
+    role: role || 'Musician',
+    authProvider: authProvider || 'email',
+    avatarUrl: avatarUrl || ''
+  };
+
+  if (email) newUserData.email = email.toLowerCase().trim();
+  if (phone) newUserData.phone = phone.trim();
+
+  try {
+    user = await User.create(newUserData);
+    return user;
+  } catch (err) {
+    console.warn('Initial User.create notice:', err.message);
+
+    // Handle MongoDB duplicate key error (code 11000) for null indexes
+    if (err.code === 11000) {
+      if (email) {
+        user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (user) return user;
+      }
+      if (phone) {
+        user = await User.findOne({ phone: phone.trim() });
+        if (user) return user;
+      }
+
+      // If collision was caused by non-sparse null fields, attach unique fallback placeholders
+      if (!newUserData.phone && err.message.includes('phone')) {
+        newUserData.phone = `+91000${Date.now().toString().slice(-7)}`;
+      }
+      if (!newUserData.email && err.message.includes('email')) {
+        newUserData.email = `user_${Date.now()}@jampulse.local`;
+      }
+
+      user = await User.create(newUserData);
+      return user;
+    }
+
+    throw err;
+  }
+}
+
+// -----------------------------------------------------------------------------
 // 1. PHONE AUTHENTICATION
 // -----------------------------------------------------------------------------
 router.post('/phone/send-otp', async (req, res) => {
@@ -42,7 +106,6 @@ router.post('/phone/send-otp', async (req, res) => {
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 mins
     otpStore.set(internationalFormat, { code: otp, expiresAt });
 
-    // 1. If real SMS Gateway Key is provided (Production)
     if (process.env.SMS_API_KEY) {
       try {
         const rawDigits = parsedNumber.nationalNumber;
@@ -68,8 +131,6 @@ router.post('/phone/send-otp', async (req, res) => {
       }
     }
 
-    // 2. Fallback Dev Mode (When no SMS key exists)
-    // Server logs the OTP for security:
     console.log(`\n========================================`);
     console.log(`📲 [PHONE OTP GENERATED]`);
     console.log(`Target: ${internationalFormat} (${nationalFormat})`);
@@ -78,7 +139,7 @@ router.post('/phone/send-otp', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Code generated for ${nationalFormat}. (Check Render logs or use dev testing code)`,
+      message: `Code generated for ${nationalFormat}. (Check Render logs or use dev PIN 999999)`,
       isDevMode: !process.env.SMS_API_KEY
     });
   } catch (err) {
@@ -101,7 +162,6 @@ router.post('/phone/verify-otp', async (req, res) => {
     const formattedNumber = parsedNumber.format('E.164');
     const record = otpStore.get(formattedNumber);
 
-    // Support dev test bypass PIN only if SMS provider is not active
     const isDevBypass = !process.env.SMS_API_KEY && otp.trim() === '999999';
     const isMatch = record && record.code === otp.trim();
 
@@ -119,15 +179,12 @@ router.post('/phone/verify-otp', async (req, res) => {
 
     otpStore.delete(formattedNumber);
 
-    let user = await User.findOne({ phone: formattedNumber });
-    if (!user) {
-      user = await User.create({
-        phone: formattedNumber,
-        name: name?.trim() || `Jammer_${formattedNumber.slice(-4)}`,
-        role: role || 'Guitarist',
-        authProvider: 'phone'
-      });
-    }
+    const user = await findOrCreateUser({
+      phone: formattedNumber,
+      name: name?.trim() || `Jammer_${formattedNumber.slice(-4)}`,
+      role: role || 'Guitarist',
+      authProvider: 'phone'
+    });
 
     const token = jwt.sign(
       { userId: user._id, name: user.name, role: user.role },
@@ -142,7 +199,7 @@ router.post('/phone/verify-otp', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// 2. EMAIL AUTHENTICATION (Gmail SMTP Direct Delivery)
+// 2. EMAIL AUTHENTICATION
 // -----------------------------------------------------------------------------
 router.post('/email/send-otp', async (req, res) => {
   try {
@@ -154,7 +211,6 @@ router.post('/email/send-otp', async (req, res) => {
     const expiresAt = Date.now() + 10 * 60 * 1000;
     otpStore.set(cleanEmail, { code: otp, expiresAt });
 
-    // Verify SMTP Config
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
 
@@ -162,10 +218,7 @@ router.post('/email/send-otp', async (req, res) => {
       try {
         const mailTransporter = nodemailer.createTransport({
           service: 'gmail',
-          auth: {
-            user: smtpUser,
-            pass: smtpPass
-          }
+          auth: { user: smtpUser, pass: smtpPass }
         });
 
         await mailTransporter.sendMail({
@@ -233,15 +286,12 @@ router.post('/email/verify-otp', async (req, res) => {
 
     otpStore.delete(cleanEmail);
 
-    let user = await User.findOne({ email: cleanEmail });
-    if (!user) {
-      user = await User.create({
-        email: cleanEmail,
-        name: name?.trim() || cleanEmail.split('@')[0],
-        role: role || 'Vocalist',
-        authProvider: 'email'
-      });
-    }
+    const user = await findOrCreateUser({
+      email: cleanEmail,
+      name: name?.trim() || cleanEmail.split('@')[0],
+      role: role || 'Vocalist',
+      authProvider: 'email'
+    });
 
     const token = jwt.sign(
       { userId: user._id, name: user.name, role: user.role },
@@ -265,42 +315,55 @@ router.post('/google', async (req, res) => {
     let googleName = name;
     let googlePic = picture;
 
+    // Decode or verify credential payload if passed
     if (credential) {
       try {
-        const ticket = await googleClient.verifyIdToken({
-          idToken: credential,
-          audience: process.env.GOOGLE_CLIENT_ID
-        });
-        const payload = ticket.getPayload();
-        googleEmail = payload.email;
-        googleName = payload.name;
-        googlePic = payload.picture;
-      } catch (e) {
-        const parts = credential.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+        if (process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.includes('your_google_client_id')) {
+          const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+          });
+          const payload = ticket.getPayload();
           googleEmail = payload.email;
           googleName = payload.name;
           googlePic = payload.picture;
+        } else {
+          const parts = credential.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+            googleEmail = payload.email;
+            googleName = payload.name;
+            googlePic = payload.picture;
+          }
         }
+      } catch (tokenErr) {
+        console.warn('Google credential parsing fallback:', tokenErr.message);
+        try {
+          const parts = credential.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+            googleEmail = payload.email || googleEmail;
+            googleName = payload.name || googleName;
+            googlePic = payload.picture || googlePic;
+          }
+        } catch (_) {}
       }
     }
 
     if (!googleEmail) {
-      googleEmail = 'demo.musician@gmail.com';
-      googleName = 'Demo Musician';
+      googleEmail = 'musician.artist@gmail.com';
+      googleName = 'Google Jammer';
     }
 
-    let user = await User.findOne({ email: googleEmail.toLowerCase() });
-    if (!user) {
-      user = await User.create({
-        email: googleEmail.toLowerCase(),
-        name: googleName || 'Google Jammer',
-        avatarUrl: googlePic || '',
-        authProvider: 'google',
-        role: 'Musician'
-      });
-    }
+    const cleanEmail = googleEmail.toLowerCase().trim();
+
+    const user = await findOrCreateUser({
+      email: cleanEmail,
+      name: googleName || 'Google Jammer',
+      avatarUrl: googlePic || '',
+      authProvider: 'google',
+      role: 'Musician'
+    });
 
     const token = jwt.sign(
       { userId: user._id, name: user.name, role: user.role },
@@ -310,6 +373,7 @@ router.post('/google', async (req, res) => {
 
     res.json({ success: true, token, user });
   } catch (err) {
+    console.error('Google Auth Route Error:', err);
     res.status(500).json({ error: 'Google sign-in error: ' + err.message });
   }
 });
@@ -320,7 +384,7 @@ router.post('/google', async (req, res) => {
 router.post('/guest', async (req, res) => {
   try {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const guestUser = await User.create({
+    const guestUser = await findOrCreateUser({
       name: `Guest Jammer #${randomSuffix}`,
       authProvider: 'guest',
       role: 'Listener/Fan'
