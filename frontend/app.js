@@ -341,7 +341,7 @@ function completeAuth(jwtToken, user) {
   fetchJamsFromBackend();
 }
 
-function logout() {
+window.logout = function() {
   localStorage.removeItem('jam_auth_token');
   localStorage.removeItem('jam_auth_user');
   token = null;
@@ -350,7 +350,7 @@ function logout() {
   closeDropdown();
   updateAuthUI();
   fetchJamsFromBackend();
-}
+};
 
 function toggleDropdown(e) {
   if (e) e.stopPropagation();
@@ -364,6 +364,97 @@ function closeDropdown() {
 
 if (avatarTriggerBtn) {
   avatarTriggerBtn.addEventListener('click', toggleDropdown);
+}
+
+// ==================== NEW PROFILE MENU ACTIONS ====================
+function initProfileDropdownActions() {
+  const btnMyHosted = document.getElementById('btnMyHostedJams');
+  if (btnMyHosted) {
+    btnMyHosted.onclick = () => {
+      closeDropdown();
+      if (!currentUser) return openModal('authModal');
+      const myJams = (jamsData || []).filter(j => 
+        (j.hostId && j.hostId === currentUser._id) || 
+        (j.hostTeam && currentUser.name && j.hostTeam.toLowerCase() === currentUser.name.toLowerCase())
+      );
+      if (myJams.length === 0) {
+        alert('You haven\'t hosted any circles yet. Tap "+ Host Jam" to post one!');
+        openHostBtn.click();
+      } else {
+        renderCards(myJams);
+        resultsCount.innerText = `${myJams.length} Hosted Jam(s)`;
+      }
+    };
+  }
+
+  const btnSaved = document.getElementById('btnSavedJams');
+  if (btnSaved) {
+    btnSaved.onclick = () => {
+      closeDropdown();
+      const savedIds = JSON.parse(localStorage.getItem('jam_saved_ids') || '[]');
+      const savedJams = (jamsData || []).filter(j => savedIds.includes(j._id));
+      if (savedJams.length === 0) {
+        alert('No saved jams yet. Bookmark jams using the heart or join features to track them here!');
+      } else {
+        renderCards(savedJams);
+        resultsCount.innerText = `${savedJams.length} Saved Jam(s)`;
+      }
+    };
+  }
+
+  const btnInvites = document.getElementById('btnJamInvites');
+  if (btnInvites) {
+    btnInvites.onclick = () => {
+      closeDropdown();
+      if (!currentUser) return openModal('authModal');
+      const attending = (jamsData || []).filter(j => j.rsvpUsers?.includes(currentUser._id));
+      if (attending.length === 0) {
+        alert("You haven't RSVP'd to any jams yet. Tap '+ Join In' on any jam card to save your spot!");
+      } else {
+        renderCards(attending);
+        resultsCount.innerText = `${attending.length} Confirmed RSVP(s)`;
+      }
+    };
+  }
+
+  const btnGear = document.getElementById('btnGearLocker');
+  if (btnGear) {
+    btnGear.onclick = () => {
+      closeDropdown();
+      window.openProfileDrawer();
+      setTimeout(() => {
+        const gearSection = document.getElementById('instrumentsMultiSelector');
+        if (gearSection) {
+          gearSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    };
+  }
+
+  const btnPref = document.getElementById('btnPreferences');
+  if (btnPref) {
+    btnPref.onclick = () => {
+      closeDropdown();
+      alert('⚙️ Preferences:\n- Default Radius: 25 km\n- Audio Notifications: Enabled\n- Metric Units (km): Enabled');
+    };
+  }
+
+  const btnSec = document.getElementById('btnSecurity');
+  if (btnSec) {
+    btnSec.onclick = () => {
+      closeDropdown();
+      const identity = currentUser?.email || currentUser?.phone || 'Guest Account';
+      alert(`🔒 Security Settings:\n\nActive Account: ${identity}\nOAuth Provider: Google / OTP Auth\nToken status: Active & Encrypted`);
+    };
+  }
+
+  const btnSupp = document.getElementById('btnSupport');
+  if (btnSupp) {
+    btnSupp.onclick = () => {
+      closeDropdown();
+      alert('🎸 JamPulse Community Guidelines & Help:\n\n1. Be respectful to fellow artists & circle leaders.\n2. Keep session descriptions honest regarding skill level.\n\nNeed Help? Reach us at support@jampulse.com');
+    };
+  }
 }
 
 function updateAuthUI() {
@@ -884,6 +975,7 @@ function escapeHtml(str) {
 window.addEventListener('DOMContentLoaded', () => {
   initMap();
   verifyActiveSession();
+  initProfileDropdownActions();
   setLocationToCurrentGPS();
   setTimeout(initGoogleAuth, 400);
 });

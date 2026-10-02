@@ -53,21 +53,48 @@
         </button>
 
         <div id="avatarDropdownMenu" class="avatar-dropdown-menu hidden" role="menu">
+          <div class="dropdown-header">
+            <span class="dropdown-header-title">My Account</span>
+          </div>
+          
           <button class="dropdown-item" onclick="openProfileDrawer()" role="menuitem">
-            <span class="item-icon">👤</span> 1. Profile Details
+            <span class="item-icon">👤</span> Profile & Artist Card
           </button>
-          <button class="dropdown-item" onclick="alert('Account Security settings coming soon!')" role="menuitem">
-            <span class="item-icon">🔒</span> 2. Security
+          <button class="dropdown-item" id="btnMyHostedJams" role="menuitem">
+            <span class="item-icon">🎪</span> My Hosted Jams
           </button>
-          <button class="dropdown-item" onclick="alert('Preferences coming soon!')" role="menuitem">
-            <span class="item-icon">⚙️</span> 3. Preferences
+          <button class="dropdown-item" id="btnSavedJams" role="menuitem">
+            <span class="item-icon">⭐</span> Saved & Starred Jams
           </button>
-          <button class="dropdown-item" onclick="alert('Need help? Email support@jampulse.com')" role="menuitem">
-            <span class="item-icon">💬</span> 4. Help & Support
+          <button class="dropdown-item" id="btnJamInvites" role="menuitem">
+            <span class="item-icon">🎟️</span> Jam Invitations & RSVPs
           </button>
+
           <div class="dropdown-divider"></div>
+          <div class="dropdown-header">
+            <span class="dropdown-header-title">Workspace & Gear</span>
+          </div>
+
+          <button class="dropdown-item" id="btnGearLocker" role="menuitem">
+            <span class="item-icon">🎸</span> Gear & Instruments Locker
+          </button>
+          <button class="dropdown-item" id="btnPreferences" role="menuitem">
+            <span class="item-icon">⚙️</span> Audio & App Preferences
+          </button>
+          <button class="dropdown-item" id="btnSecurity" role="menuitem">
+            <span class="item-icon">🔒</span> Account Security
+          </button>
+
+          <div class="dropdown-divider"></div>
+
+          <button class="dropdown-item" id="btnSupport" role="menuitem">
+            <span class="item-icon">💬</span> Help & Community Rules
+          </button>
+          
+          <div class="dropdown-divider"></div>
+
           <button class="dropdown-item text-danger-item" onclick="logout()" role="menuitem">
-            <span class="item-icon">🚪</span> 5. Log Out
+            <span class="item-icon">🚪</span> Sign Out
           </button>
         </div>
       </div>
