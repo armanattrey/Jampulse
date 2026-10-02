@@ -278,7 +278,6 @@ function renderCards(jams) {
       </div>
     `;
 
-    // Event delegates on card
     card.addEventListener('click', () => {
       map.flyTo([jam.location.coordinates[1], jam.location.coordinates[0]], 15, { duration: 1 });
     });
@@ -477,7 +476,6 @@ document.getElementById('submitReviewBtn').addEventListener('click', async () =>
 function openContactModal(jam) {
   document.getElementById('contactSubtitleHeader').innerText = `${jam.title} (${jam.hostTeam})`;
 
-  // In-App masked chat without exposing phone/email
   const inAppBtn = document.getElementById('inAppContactBtn');
   inAppBtn.onclick = async () => {
     if (!token) return openModal('authModal');
@@ -504,7 +502,6 @@ function openContactModal(jam) {
     }
   };
 
-  // WhatsApp button fallback
   const defaultPhone = jam.hostPhone || '919999999999';
   const cleanPhone = defaultPhone.replace(/[^\d]/g, '');
   const message = encodeURIComponent(`Hi! I saw your jam "${jam.title}" on JamPulse and would love to join.`);
@@ -571,9 +568,8 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
       document.getElementById('phoneStep1').classList.add('hidden');
       document.getElementById('phoneStep2').classList.remove('hidden');
 
-      if (data.demoOtp) {
-        alert(`Verification code sent! (Dev Console Code: ${data.demoOtp})`);
-      }
+      // Secure notification: does not expose the OTP
+      alert(data.message || 'Verification code sent! Please check your messages.');
     } else {
       statusElem.innerText = 'Validation failed';
       alert(data.error || 'Failed to send OTP');
@@ -586,6 +582,8 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
 document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
   const otp = document.getElementById('loginOtpInput').value.trim();
   const name = document.getElementById('loginNameInput').value.trim();
+
+  if (!otp) return alert('Please enter the verification code.');
 
   try {
     const res = await fetch(`${API_BASE}/auth/phone/verify-otp`, {
@@ -622,9 +620,8 @@ document.getElementById('sendEmailOtpBtn').addEventListener('click', async () =>
       document.getElementById('emailStep1').classList.add('hidden');
       document.getElementById('emailStep2').classList.remove('hidden');
 
-      if (data.demoOtp) {
-        alert(`Verification code sent! (Dev Console Code: ${data.demoOtp})`);
-      }
+      // Secure notification: does not expose the OTP
+      alert(data.message || 'Verification code sent to your email.');
     } else {
       statusElem.innerText = 'Invalid email';
       alert(data.error || 'Failed to verify email');
@@ -637,6 +634,8 @@ document.getElementById('sendEmailOtpBtn').addEventListener('click', async () =>
 document.getElementById('verifyEmailOtpBtn').addEventListener('click', async () => {
   const otp = document.getElementById('loginEmailOtpInput').value.trim();
   const name = document.getElementById('loginEmailNameInput').value.trim();
+
+  if (!otp) return alert('Please enter the verification code.');
 
   try {
     const res = await fetch(`${API_BASE}/auth/email/verify-otp`, {
@@ -697,10 +696,13 @@ function initGoogleAuth() {
       }
     });
 
-    google.accounts.id.renderButton(
-      document.getElementById('googleOneTapBtn'),
-      { theme: 'outline', size: 'large', width: 340 }
-    );
+    const googleBtnContainer = document.getElementById('googleOneTapBtn');
+    if (googleBtnContainer) {
+      google.accounts.id.renderButton(
+        googleBtnContainer,
+        { theme: 'outline', size: 'large', width: 340 }
+      );
+    }
   }
 }
 
@@ -745,7 +747,6 @@ window.closeModals = () => {
   locationModal.classList.add('hidden');
   contactModal.classList.add('hidden');
 
-  // Reset multi-step forms
   document.getElementById('phoneStep1').classList.remove('hidden');
   document.getElementById('phoneStep2').classList.add('hidden');
   document.getElementById('emailStep1').classList.remove('hidden');

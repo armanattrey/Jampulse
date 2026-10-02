@@ -40,7 +40,6 @@ router.post('/phone/send-otp', async (req, res) => {
 
     const parsedNumber = parsePhoneNumberFromString(phone, 'IN');
 
-    // Basic format check
     if (!parsedNumber || !parsedNumber.isValid()) {
       return res.status(400).json({
         error: 'Invalid phone number. Please enter a valid 10-digit mobile number.'
@@ -73,14 +72,16 @@ router.post('/phone/send-otp', async (req, res) => {
         console.error('SMS Gateway Error:', smsErr.message);
       }
     } else {
-      console.log(`\n📲 [SMS OTP SIMULATOR] To: ${internationalFormat} | OTP: ${otp}\n`);
+      // Kept private on the server for the admin
+      console.log(`\n🔒 [SECURE SERVER LOG ONLY]`);
+      console.log(`To: ${internationalFormat} (${nationalFormat}) | OTP: ${otp}\n`);
     }
 
+    // Never return the OTP in the JSON response
     res.json({
       success: true,
       message: `OTP sent to ${nationalFormat}`,
-      formattedNumber: internationalFormat,
-      demoOtp: otp // Always returned when testing without gateway
+      formattedNumber: internationalFormat
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -98,16 +99,18 @@ router.post('/phone/verify-otp', async (req, res) => {
     const formattedNumber = parsedNumber.format('E.164');
     const record = otpStore.get(formattedNumber);
 
-    // Universal bypass OTP "123456" for demo/testing or match generated OTP
-    const isMasterOtp = otp.trim() === '123456';
-    const isMatch = record && record.code === otp.trim();
+    if (!record) {
+      return res.status(400).json({ error: 'No OTP requested or OTP has expired.' });
+    }
 
-    if (!isMasterOtp && !isMatch) {
-      if (record && Date.now() > record.expiresAt) {
-        otpStore.delete(formattedNumber);
-        return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
-      }
-      return res.status(400).json({ error: 'Incorrect verification code. Use the code received or 123456.' });
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(formattedNumber);
+      return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+    }
+
+    // Strict validation: must match generated code exactly
+    if (record.code !== otp.trim()) {
+      return res.status(400).json({ error: 'Incorrect verification code.' });
     }
 
     otpStore.delete(formattedNumber);
@@ -155,13 +158,13 @@ router.post('/email/send-otp', async (req, res) => {
         html: `<h2>Your JamPulse code is: <strong>${otp}</strong></h2>`
       });
     } else {
-      console.log(`\n📧 [EMAIL OTP SIMULATOR] To: ${cleanEmail} | OTP: ${otp}\n`);
+      console.log(`\n🔒 [SECURE SERVER LOG ONLY]`);
+      console.log(`To: ${cleanEmail} | OTP: ${otp}\n`);
     }
 
     res.json({
       success: true,
-      message: `Code sent to ${cleanEmail}`,
-      demoOtp: otp
+      message: `Code sent to ${cleanEmail}`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -174,11 +177,17 @@ router.post('/email/verify-otp', async (req, res) => {
     const cleanEmail = email?.trim().toLowerCase();
     const record = otpStore.get(cleanEmail);
 
-    const isMasterOtp = otp.trim() === '123456';
-    const isMatch = record && record.code === otp.trim();
+    if (!record) {
+      return res.status(400).json({ error: 'No code requested or code expired.' });
+    }
 
-    if (!isMasterOtp && !isMatch) {
-      return res.status(400).json({ error: 'Incorrect code. (Demo code: 123456)' });
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(cleanEmail);
+      return res.status(400).json({ error: 'Code expired. Please request a new one.' });
+    }
+
+    if (record.code !== otp.trim()) {
+      return res.status(400).json({ error: 'Incorrect verification code.' });
     }
 
     otpStore.delete(cleanEmail);
@@ -226,7 +235,6 @@ router.post('/google', async (req, res) => {
         googleName = payload.name;
         googlePic = payload.picture;
       } catch (e) {
-        // Fallback: decode JWT payload without signature verification if client ID is mismatch
         const parts = credential.split('.');
         if (parts.length === 3) {
           const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
