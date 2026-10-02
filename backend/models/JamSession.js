@@ -23,6 +23,7 @@ const JamSessionSchema = new mongoose.Schema({
   rsvpUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   averageRating: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
+  allowInAppChat: { type: Boolean, default: true }, // Enables masked in-app communication
   status: { type: String, enum: ['upcoming', 'live', 'completed'], default: 'upcoming' },
   createdAt: { type: Date, default: Date.now }
 });

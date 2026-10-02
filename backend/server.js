@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const jamRoutes = require('./routes/jams');
 const reviewRoutes = require('./routes/reviews');
+const chatRoutes = require('./routes/chat');
 const JamSession = require('./models/JamSession');
 
 const app = express();
@@ -94,6 +95,7 @@ async function seedDemoJams() {
 app.use('/api/auth', authRoutes);
 app.use('/api/jams', jamRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamCircle Engine' }));
 
