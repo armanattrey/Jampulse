@@ -15,15 +15,20 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // 1. Core Middleware
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
 app.use(cors({
-  origin: '*',
+  origin: process.env.NODE_ENV === 'production' ? allowedOrigins : '*',
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
 
-// 2. Resolve Static Assets Directory (checks ../frontend, ../public, or ./public)
+// 2. Resolve Static Assets Directory
 const possibleFrontendPaths = [
   path.join(__dirname, '../frontend'),
   path.join(__dirname, 'frontend'),
@@ -31,24 +36,18 @@ const possibleFrontendPaths = [
   path.join(__dirname, 'public')
 ];
 
-let staticDir = possibleFrontendPaths.find(p => fs.existsSync(p)) || path.join(__dirname, '../frontend');
+const staticDir = possibleFrontendPaths.find(p => fs.existsSync(p)) || path.join(__dirname, '../public');
+const indexPath = path.join(staticDir, 'index.html');
+const hasIndexHtml = fs.existsSync(indexPath);
+
 app.use(express.static(staticDir));
 
 // 3. Database Connection & Seeding
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/jamcircle';
 
-mongoose.connect(MONGO_URI)
-  .then(async () => {
-    console.log('✅ Connected to MongoDB Atlas (jamcircle)');
-    await seedDemoJams();
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB Connection Error:', err.message);
-  });
-
 async function seedDemoJams() {
   try {
-    const count = await JamSession.countDocuments();
+    const count = await JamSession.estimatedDocumentCount();
     if (count === 0) {
       const now = new Date();
       const mockUserId = new mongoose.Types.ObjectId();
@@ -108,8 +107,8 @@ async function seedDemoJams() {
       ]);
       console.log('🎸 Seeded 3 rich musical jam sessions for exploration.');
     }
-  } catch (e) {
-    console.error('Error seeding data:', e.message);
+  } catch (err) {
+    console.error('Error seeding data:', err.message);
   }
 }
 
@@ -121,17 +120,24 @@ app.use('/api/chat', chatRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamPulse API Engine' }));
 
-// 5. Client-Side Routing Fallback
-app.get('*', (req, res) => {
-  const indexPath = path.join(staticDir, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend index.html not found.');
+// 5. Client-Side Routing Fallback (Regex avoids matching API calls)
+app.get(/^(?!\/api).*/, (req, res) => {
+  if (hasIndexHtml) {
+    return res.sendFile(indexPath);
   }
+  res.status(404).json({ error: 'Frontend build not found' });
 });
 
-// 6. Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 JamPulse server running at http://localhost:${PORT}`);
-});
+// 6. Connect to DB and Start Server
+mongoose.connect(MONGO_URI)
+  .then(async () => {
+    console.log('✅ Connected to MongoDB');
+    await seedDemoJams();
+    app.listen(PORT, () => {
+      console.log(`🚀 JamPulse server running at http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    process.exit(1);
+  });

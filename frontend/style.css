@@ -1627,3 +1627,67 @@ input:disabled {
   cursor: not-allowed;
   border-color: #e2e8f0 !important;
 }
+/* ==================== Z-INDEX STACKING FIX ==================== */
+
+/* 1. Header & Location Bar must stay above the map tiles & controls */
+.app-header {
+  position: relative;
+  z-index: 1100 !important;
+}
+
+/* 2. Category rail and filters */
+.category-rail {
+  position: relative;
+  z-index: 1050 !important;
+}
+
+/* 3. Avatar dropdown menu */
+.avatar-menu-container {
+  position: relative;
+  z-index: 1200 !important;
+}
+
+.avatar-dropdown-menu {
+  position: absolute;
+  z-index: 1300 !important;
+}
+
+/* 4. Left feed section & controls */
+.feed-section {
+  position: relative;
+  z-index: 500;
+}
+
+/* 5. Map container (Leaflet internally uses 400-1000) */
+.map-section {
+  position: relative;
+  z-index: 1;
+}
+
+#leafletMap {
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Keeps tiles below modals & headers */
+}
+
+/* 6. Floating Action Button (+ Host Jam) */
+.btn-fab {
+  z-index: 1400 !important;
+}
+
+/* 7. Modals & Drawers (Profile, Host, Contact, Auth) */
+.modal-backdrop {
+  z-index: 2000 !important; /* Above everything including Leaflet popups */
+}
+
+.modal-card,
+.modal-profile-card {
+  position: relative;
+  z-index: 2010 !important;
+}
+
+/* Ensure Leaflet controls stay within bounds */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 400 !important;
+}
