@@ -44,6 +44,7 @@ html, body {
   overflow: hidden;
   background-color: var(--bg-app);
   color: var(--text-primary);
+  position: relative;
 }
 
 body {
@@ -55,7 +56,7 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* ==================== 1. HEADER ==================== */
+/* ==================== 1. HEADER (Elevated Above Map) ==================== */
 .app-header {
   flex-shrink: 0;
   min-height: 64px;
@@ -66,7 +67,8 @@ body {
   justify-content: space-between;
   padding: 0 16px;
   gap: 12px;
-  z-index: 100;
+  position: relative;
+  z-index: 2000 !important;
   box-shadow: var(--shadow-sm);
 }
 
@@ -244,6 +246,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  position: relative;
+  z-index: 1500 !important;
 }
 .rail-inner {
   display: flex;
@@ -287,6 +291,7 @@ body {
   min-height: 0;
   overflow: hidden;
   position: relative;
+  z-index: 10;
 }
 
 /* Left Feed Section */
@@ -297,6 +302,8 @@ body {
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--bg-app);
+  position: relative;
+  z-index: 20;
 }
 
 .filter-strip {
@@ -465,16 +472,21 @@ body {
   gap: 6px;
 }
 
-/* Right Map Section */
+/* ==================== 4. RIGHT MAP SECTION (ISOLATED) ==================== */
 .map-section {
   flex: 0 0 45%;
   height: 100%;
   position: relative;
+  z-index: 1 !important;
+  isolation: isolate !important;
 }
 #leafletMap {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
+
 .map-recenter-btn {
   position: absolute;
   bottom: 24px;
@@ -487,13 +499,13 @@ body {
   font-size: 1.2rem;
   box-shadow: var(--shadow-md);
   cursor: pointer;
-  z-index: 800;
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ==================== 4. BUTTONS & UI CONTROLS ==================== */
+/* ==================== 5. BUTTONS & UI CONTROLS ==================== */
 .btn {
   padding: 8px 16px;
   border-radius: var(--radius-full);
@@ -546,7 +558,7 @@ body {
   width: 100%;
 }
 
-/* ==================== 5. FLOATING ACTION BUTTON (FAB) ==================== */
+/* ==================== 6. FLOATING ACTION BUTTON (FAB) ==================== */
 .btn-fab {
   position: fixed;
   bottom: calc(20px + env(safe-area-inset-bottom));
@@ -562,7 +574,7 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-fab);
-  z-index: 1000;
+  z-index: 3000 !important;
   font-size: 1.5rem;
   outline: none;
 }
@@ -597,16 +609,16 @@ body {
   transform: translateX(0);
 }
 
-/* ==================== 6. MODALS ==================== */
+/* ==================== 7. MODALS (Top Layer) ==================== */
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
+  position: fixed !important;
+  inset: 0 !important;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 9000 !important;
   padding: 16px;
 }
 .modal-card {
@@ -618,6 +630,7 @@ body {
   max-height: 85vh;
   overflow-y: auto;
   position: relative;
+  z-index: 9010 !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 .modal-large {
@@ -644,7 +657,7 @@ body {
   margin-bottom: 18px;
 }
 
-/* ==================== AUTH MODAL REDESIGNED ==================== */
+/* Auth Modal */
 .auth-modal-card {
   width: 400px;
   padding: 28px 24px 24px 24px;
@@ -682,7 +695,6 @@ body {
   line-height: 1.4;
 }
 
-/* Modern Google Single Button */
 .google-auth-box {
   margin-bottom: 12px;
   display: flex;
@@ -711,7 +723,6 @@ body {
   border-color: #cbd5e1;
 }
 
-/* Segmented Pill Tabs Switcher */
 .auth-tabs-segmented {
   display: flex;
   background: #f1f5f9;
@@ -740,7 +751,6 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* Modern Phone Input with Prefix Badge */
 .phone-input-combo {
   display: flex;
   align-items: center;
@@ -799,7 +809,6 @@ body {
   line-height: 1.45;
 }
 
-/* Base Form Controls */
 .form-group {
   margin-bottom: 12px;
   display: flex;
@@ -839,7 +848,7 @@ body {
   margin-top: 18px;
 }
 
-/* Location Picker Cards */
+/* Location Selector */
 .loc-option-card {
   display: flex;
   align-items: center;
@@ -1006,20 +1015,26 @@ body {
 .text-brand { color: var(--brand); font-weight: 700; }
 .empty-text { font-size: 0.82rem; color: var(--text-muted); }
 
-/* ==================== 7. MODERN INTERACTIVE ARTIST STUDIO ==================== */
+/* ==================== 8. MODERN INTERACTIVE ARTIST STUDIO ==================== */
 .modal-profile-card {
   padding: 0 !important;
-  overflow: hidden;
+  overflow: hidden !important;
   border-radius: 24px;
   width: 480px;
   max-width: 95%;
+  max-height: 90vh !important;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  position: relative;
+  z-index: 9100 !important;
 }
 
 .profile-hero-banner {
   position: relative;
+  flex-shrink: 0;
   height: 105px;
   background: linear-gradient(135deg, #e11d48 0%, #9333ea 50%, #2563eb 100%);
   display: flex;
@@ -1086,6 +1101,14 @@ body {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* Scrollable container for profile body */
+.profile-scrollable-container {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  max-height: calc(90vh - 105px);
 }
 
 .profile-body-content {
@@ -1330,7 +1353,183 @@ body {
   background: #fee2e2 !important;
 }
 
-/* ==================== 8. MOBILE RESPONSIVE ENGINE ==================== */
+/* ==================== 9. AVATAR DROPDOWN (Above Header & Map) ==================== */
+.avatar-menu-container {
+  position: relative;
+  display: inline-block;
+  z-index: 2500 !important;
+}
+
+.avatar-round-btn {
+  background: none;
+  border: 2px solid transparent;
+  padding: 2px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.avatar-round-btn:hover {
+  transform: scale(1.05);
+  border-color: var(--brand);
+}
+
+.avatar-round-btn:focus {
+  outline: none;
+}
+
+.avatar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+  padding: 6px;
+  z-index: 3000 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+.avatar-dropdown-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.avatar-dropdown-menu::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+  padding: 6px 10px 4px 10px;
+  user-select: none;
+}
+
+.dropdown-header-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dropdown-item .item-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9;
+  color: var(--brand);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 5px 0;
+}
+
+.dropdown-item.text-danger-item {
+  color: #ef4444;
+}
+
+.dropdown-item.text-danger-item:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Sticky fixed close button for profile modal */
+.close-profile-modal-btn {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  color: #ffffff !important;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 9999 !important;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.close-profile-modal-btn:hover {
+  background: rgba(15, 23, 42, 0.9) !important;
+  transform: scale(1.08);
+}
+
+.label-with-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cooldown-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cooldown-hint {
+  font-size: 0.72rem;
+  margin-top: 4px;
+  color: var(--text-secondary);
+}
+
+.cooldown-hint.locked {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+input:disabled {
+  background-color: #f8fafc !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+  border-color: #e2e8f0 !important;
+}
+
+/* ==================== 10. MOBILE RESPONSIVE ENGINE ==================== */
 @media (max-width: 900px) {
   .app-header {
     height: auto;
@@ -1453,241 +1652,4 @@ body {
     width: 230px;
     max-height: 75vh;
   }
-}
-
-/* ==================== AVATAR DROPDOWN & COOLDOWN ADDITIONS ==================== */
-.avatar-menu-container {
-  position: relative;
-  display: inline-block;
-}
-
-.avatar-round-btn {
-  background: none;
-  border: 2px solid transparent;
-  padding: 2px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.avatar-round-btn:hover {
-  transform: scale(1.05);
-  border-color: var(--brand);
-}
-
-.avatar-round-btn:focus {
-  outline: none;
-}
-
-.avatar-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 240px;
-  max-height: 80vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
-  padding: 6px;
-  z-index: 1500;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: fadeInDown 0.15s ease-out;
-}
-
-.avatar-dropdown-menu::-webkit-scrollbar {
-  width: 4px;
-}
-
-.avatar-dropdown-menu::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 4px;
-}
-
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.dropdown-header {
-  padding: 6px 10px 4px 10px;
-  user-select: none;
-}
-
-.dropdown-header-title {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.6px;
-}
-
-.dropdown-item {
-  width: 100%;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.dropdown-item .item-icon {
-  font-size: 0.95rem;
-  flex-shrink: 0;
-}
-
-.dropdown-item:hover {
-  background: #f1f5f9;
-  color: var(--brand);
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 5px 0;
-}
-
-.dropdown-item.text-danger-item {
-  color: #ef4444;
-}
-
-.dropdown-item.text-danger-item:hover {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.close-profile-modal-btn {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  background: rgba(15, 23, 42, 0.5);
-  color: #ffffff;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 1.3rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 25;
-  transition: background 0.15s ease, transform 0.15s ease;
-}
-
-.close-profile-modal-btn:hover {
-  background: rgba(15, 23, 42, 0.85);
-  transform: scale(1.08);
-}
-
-.label-with-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.cooldown-tag {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.cooldown-hint {
-  font-size: 0.72rem;
-  margin-top: 4px;
-  color: var(--text-secondary);
-}
-
-.cooldown-hint.locked {
-  color: #ef4444;
-  font-weight: 600;
-}
-
-input:disabled {
-  background-color: #f8fafc !important;
-  color: #94a3b8 !important;
-  cursor: not-allowed;
-  border-color: #e2e8f0 !important;
-}
-/* ==================== Z-INDEX STACKING FIX ==================== */
-
-/* 1. Header & Location Bar must stay above the map tiles & controls */
-.app-header {
-  position: relative;
-  z-index: 1100 !important;
-}
-
-/* 2. Category rail and filters */
-.category-rail {
-  position: relative;
-  z-index: 1050 !important;
-}
-
-/* 3. Avatar dropdown menu */
-.avatar-menu-container {
-  position: relative;
-  z-index: 1200 !important;
-}
-
-.avatar-dropdown-menu {
-  position: absolute;
-  z-index: 1300 !important;
-}
-
-/* 4. Left feed section & controls */
-.feed-section {
-  position: relative;
-  z-index: 500;
-}
-
-/* 5. Map container (Leaflet internally uses 400-1000) */
-.map-section {
-  position: relative;
-  z-index: 1;
-}
-
-#leafletMap {
-  width: 100%;
-  height: 100%;
-  z-index: 1; /* Keeps tiles below modals & headers */
-}
-
-/* 6. Floating Action Button (+ Host Jam) */
-.btn-fab {
-  z-index: 1400 !important;
-}
-
-/* 7. Modals & Drawers (Profile, Host, Contact, Auth) */
-.modal-backdrop {
-  z-index: 2000 !important; /* Above everything including Leaflet popups */
-}
-
-.modal-card,
-.modal-profile-card {
-  position: relative;
-  z-index: 2010 !important;
-}
-
-/* Ensure Leaflet controls stay within bounds */
-.leaflet-top,
-.leaflet-bottom {
-  z-index: 400 !important;
 }
