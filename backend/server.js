@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -22,8 +23,16 @@ app.use(cors({
 
 app.use(express.json());
 
-// 2. Serve Static Assets (Frontend)
-app.use(express.static(path.join(__dirname, '../frontend')));
+// 2. Resolve Static Assets Directory (checks ../frontend, ../public, or ./public)
+const possibleFrontendPaths = [
+  path.join(__dirname, '../frontend'),
+  path.join(__dirname, 'frontend'),
+  path.join(__dirname, '../public'),
+  path.join(__dirname, 'public')
+];
+
+let staticDir = possibleFrontendPaths.find(p => fs.existsSync(p)) || path.join(__dirname, '../frontend');
+app.use(express.static(staticDir));
 
 // 3. Database Connection & Seeding
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/jamcircle';
@@ -112,9 +121,14 @@ app.use('/api/chat', chatRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamPulse API Engine' }));
 
-// 5. Client-Side Routing Fallback (Must be after all API routes)
+// 5. Client-Side Routing Fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  const indexPath = path.join(staticDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend index.html not found.');
+  }
 });
 
 // 6. Start Server

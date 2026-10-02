@@ -9,15 +9,19 @@ const User = require('../models/User');
 const JWT_SECRET = process.env.JWT_SECRET || 'jampulse_live_jwt_secret_key_2026';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// 30 Days (Name) & 90 Days (Phone) Cooldown in milliseconds
+const COOLDOWNS = {
+  NAME_MS: 30 * 24 * 60 * 60 * 1000,
+  PHONE_MS: 90 * 24 * 60 * 60 * 1000
+};
+
 // In-Memory OTP Store: key -> { code, expiresAt }
 const otpStore = new Map();
 
-// Helper: 6-Digit Cryptographic-friendly OTP
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Authentication Gate Middleware
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -34,23 +38,17 @@ function requireAuth(req, res, next) {
   }
 }
 
-// -----------------------------------------------------------------------------
-// Bulletproof User Resolver (Immune to Enum & E11000 Duplicate Key Collisions)
-// -----------------------------------------------------------------------------
 async function findOrCreateUser({ email, phone, name, role, authProvider, avatarUrl, instruments }) {
   let user = null;
 
-  // 1. Search existing record by email
   if (email) {
     user = await User.findOne({ email: email.toLowerCase().trim() });
   }
 
-  // 2. Search existing record by phone
   if (!user && phone) {
     user = await User.findOne({ phone: phone.trim() });
   }
 
-  // If user already exists, backfill missing profile fields
   if (user) {
     let modified = false;
     if (avatarUrl && !user.avatarUrl) {
@@ -65,17 +63,17 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
     return user;
   }
 
-  // Fallback role check to avoid schema validation crashes
   const validRoles = ['Guitarist', 'Vocalist', 'Drummer/Percussion', 'Bassist', 'Keys', 'Listener/Fan', 'Musician'];
   const safeRole = validRoles.includes(role) ? role : 'Guitarist';
 
-  // 3. Prepare fresh document payload
   const newUserData = {
     name: name?.trim() || (email ? email.split('@')[0] : 'Jammer'),
     role: safeRole,
     authProvider: authProvider || 'guest',
     avatarUrl: avatarUrl || '',
-    instruments: Array.isArray(instruments) ? instruments : []
+    instruments: Array.isArray(instruments) ? instruments : [],
+    lastNameChange: null,
+    lastPhoneChange: null
   };
 
   if (email) newUserData.email = email.toLowerCase().trim();
@@ -85,15 +83,11 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
     user = await User.create(newUserData);
     return user;
   } catch (err) {
-    console.warn('Initial User.create notification:', err.message);
-
-    // Handle MongoDB duplicate key collision (code 11000)
     if (err.code === 11000) {
       if (email) user = await User.findOne({ email: email.toLowerCase().trim() });
       if (!user && phone) user = await User.findOne({ phone: phone.trim() });
       if (user) return user;
 
-      // Handle sparse null index collisions
       if (!newUserData.phone && err.message.includes('phone')) {
         newUserData.phone = `+91000${Date.now().toString().slice(-7)}`;
       }
@@ -104,13 +98,12 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
       user = await User.create(newUserData);
       return user;
     }
-
     throw err;
   }
 }
 
 // -----------------------------------------------------------------------------
-// 1. SESSION VERIFICATION & PROFILE SYNC
+// 1. SESSION VERIFICATION & PROFILE SYNC (WITH COOLDOWNS)
 // -----------------------------------------------------------------------------
 router.get('/me', requireAuth, async (req, res) => {
   try {
@@ -124,11 +117,51 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.put('/profile', requireAuth, async (req, res) => {
   try {
-    const { name, role, bio, instruments } = req.body;
+    const { name, phone, role, bio, instruments } = req.body;
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ error: 'User does not exist.' });
 
-    if (name) user.name = name.trim();
+    const now = Date.now();
+
+    // 1. Enforce 30-Day Display Name Lock
+    const newName = name !== undefined ? name.trim() : null;
+    const isNameChanging = newName && newName !== user.name;
+
+    if (isNameChanging && user.lastNameChange) {
+      const timeSinceNameChange = now - new Date(user.lastNameChange).getTime();
+      if (timeSinceNameChange < COOLDOWNS.NAME_MS) {
+        const daysLeft = Math.ceil((COOLDOWNS.NAME_MS - timeSinceNameChange) / (1000 * 60 * 60 * 24));
+        return res.status(403).json({
+          error: `Name can only be updated once every 30 days. Available in ${daysLeft} day(s).`
+        });
+      }
+    }
+
+    // 2. Enforce 90-Day Phone Number Lock (Only if user already had a phone linked)
+    const newPhone = phone !== undefined ? phone.trim() : null;
+    const isPhoneChanging = newPhone && newPhone !== user.phone;
+
+    if (isPhoneChanging && user.phone && user.lastPhoneChange) {
+      const timeSincePhoneChange = now - new Date(user.lastPhoneChange).getTime();
+      if (timeSincePhoneChange < COOLDOWNS.PHONE_MS) {
+        const daysLeft = Math.ceil((COOLDOWNS.PHONE_MS - timeSincePhoneChange) / (1000 * 60 * 60 * 24));
+        return res.status(403).json({
+          error: `Phone number can only be updated once every 90 days. Available in ${daysLeft} day(s).`
+        });
+      }
+    }
+
+    // Commit changes and update timestamps
+    if (isNameChanging) {
+      user.name = newName;
+      user.lastNameChange = new Date(now);
+    }
+
+    if (isPhoneChanging) {
+      user.phone = newPhone;
+      user.lastPhoneChange = new Date(now);
+    }
+
     if (role) user.role = role;
     if (bio !== undefined) user.bio = bio;
     if (Array.isArray(instruments)) user.instruments = instruments;
@@ -138,6 +171,10 @@ router.put('/profile', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.post('/logout', requireAuth, (req, res) => {
+  res.json({ success: true, message: 'Logged out successfully.' });
 });
 
 // -----------------------------------------------------------------------------
@@ -353,7 +390,6 @@ router.post('/google', async (req, res) => {
     let googleName = '';
     let googlePic = '';
 
-    // 1. Direct Access Token UserInfo resolution
     if (accessToken) {
       const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${accessToken}` }
@@ -366,7 +402,6 @@ router.post('/google', async (req, res) => {
       }
     }
 
-    // 2. Google Identity Services ID Token resolution
     if (!googleEmail && credential) {
       try {
         if (process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.includes('placeholder')) {

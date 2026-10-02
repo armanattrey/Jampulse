@@ -49,6 +49,15 @@ const UserSchema = new mongoose.Schema({
     default: '',
     trim: true 
   },
+  // Cooldown Tracking Timestamps
+  lastNameChange: { 
+    type: Date, 
+    default: null 
+  },
+  lastPhoneChange: { 
+    type: Date, 
+    default: null 
+  },
   joinedAt: { 
     type: Date, 
     default: Date.now 
