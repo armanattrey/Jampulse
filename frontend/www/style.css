@@ -1449,3 +1449,10 @@ body {
     display: none;
   }
 }
+/* Ensure the profile modal container scrolls properly */
+#profileModal .modal-content, 
+.profile-drawer-container {
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+}
