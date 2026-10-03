@@ -366,7 +366,7 @@ if (avatarTriggerBtn) {
   avatarTriggerBtn.addEventListener('click', toggleDropdown);
 }
 
-// ==================== NEW PROFILE MENU ACTIONS ====================
+// ==================== PROFILE MENU ACTIONS ====================
 function initProfileDropdownActions() {
   const btnMyHosted = document.getElementById('btnMyHostedJams');
   if (btnMyHosted) {
@@ -479,14 +479,29 @@ function updateAuthUI() {
   }
 }
 
+// ==================== MAP INITIALIZATION WITH BOUNDED STACKING ====================
 function initMap() {
-  map = L.map('leafletMap', { zoomControl: false }).setView([browsingPosition.lat, browsingPosition.lng], 12);
+  map = L.map('leafletMap', { 
+    zoomControl: false 
+  }).setView([browsingPosition.lat, browsingPosition.lng], 12);
+
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
+  // Position controls inside bounded layout
   L.control.zoom({ position: 'topright' }).addTo(map);
+
+  // Enforce pane stacking programmatically so Leaflet does not bleed into UI
+  if (map.getPanes) {
+    const panes = map.getPanes();
+    if (panes.mapPane) panes.mapPane.style.zIndex = '1';
+    if (panes.tilePane) panes.tilePane.style.zIndex = '1';
+    if (panes.overlayPane) panes.overlayPane.style.zIndex = '2';
+    if (panes.markerPane) panes.markerPane.style.zIndex = '3';
+    if (panes.popupPane) panes.popupPane.style.zIndex = '4';
+  }
 
   map.on('click', async (e) => {
     const hostCoords = document.getElementById('hostCoords');
@@ -954,18 +969,27 @@ searchClearBtn.onclick = () => {
 };
 
 const contentWrapper = document.querySelector('.content-wrapper');
-document.getElementById('btnShowList').onclick = (e) => {
-  document.getElementById('btnShowMap').classList.remove('active');
-  e.target.classList.add('active');
-  contentWrapper.classList.remove('show-map');
-};
+const btnShowList = document.getElementById('btnShowList');
+const btnShowMap = document.getElementById('btnShowMap');
 
-document.getElementById('btnShowMap').onclick = (e) => {
-  document.getElementById('btnShowList').classList.remove('active');
-  e.target.classList.add('active');
-  contentWrapper.classList.add('show-map');
-  setTimeout(() => map.invalidateSize(), 200);
-};
+if (btnShowList) {
+  btnShowList.onclick = (e) => {
+    btnShowMap?.classList.remove('active');
+    e.target.classList.add('active');
+    contentWrapper?.classList.remove('show-map');
+  };
+}
+
+if (btnShowMap) {
+  btnShowMap.onclick = (e) => {
+    btnShowList?.classList.remove('active');
+    e.target.classList.add('active');
+    contentWrapper?.classList.add('show-map');
+    setTimeout(() => {
+      if (map) map.invalidateSize();
+    }, 200);
+  };
+}
 
 function escapeHtml(str) {
   if (!str) return '';
