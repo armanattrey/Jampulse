@@ -366,6 +366,27 @@ if (avatarTriggerBtn) {
   avatarTriggerBtn.addEventListener('click', toggleDropdown);
 }
 
+// ==================== CLEAN CUSTOM POPUP HELPER ====================
+function showCustomPopup(title, message) {
+  let popupModal = document.getElementById('customInfoModal');
+  if (!popupModal) {
+    popupModal = document.createElement('div');
+    popupModal.id = 'customInfoModal';
+    popupModal.className = 'modal-backdrop';
+    popupModal.innerHTML = `
+      <div class="modal-card" style="max-width:380px; text-align:center;">
+        <h3 id="customPopupTitle" style="font-size:1.15rem; margin-bottom:8px; color:var(--text-primary);"></h3>
+        <p id="customPopupMsg" style="font-size:0.86rem; color:var(--text-secondary); line-height:1.5; white-space:pre-line; margin-bottom:18px;"></p>
+        <button class="btn btn-brand btn-block" onclick="document.getElementById('customInfoModal').classList.add('hidden')">Got it</button>
+      </div>
+    `;
+    document.body.appendChild(popupModal);
+  }
+  document.getElementById('customPopupTitle').innerText = title;
+  document.getElementById('customPopupMsg').innerText = message;
+  popupModal.classList.remove('hidden');
+}
+
 // ==================== PROFILE MENU ACTIONS ====================
 function initProfileDropdownActions() {
   const btnMyHosted = document.getElementById('btnMyHostedJams');
@@ -378,7 +399,7 @@ function initProfileDropdownActions() {
         (j.hostTeam && currentUser.name && j.hostTeam.toLowerCase() === currentUser.name.toLowerCase())
       );
       if (myJams.length === 0) {
-        alert('You haven\'t hosted any circles yet. Tap "+ Host Jam" to post one!');
+        showCustomPopup("Hosted Jams", "You haven't hosted any circles yet. Tap '+ Host Jam' to post one!");
         openHostBtn.click();
       } else {
         renderCards(myJams);
@@ -394,7 +415,7 @@ function initProfileDropdownActions() {
       const savedIds = JSON.parse(localStorage.getItem('jam_saved_ids') || '[]');
       const savedJams = (jamsData || []).filter(j => savedIds.includes(j._id));
       if (savedJams.length === 0) {
-        alert('No saved jams yet. Bookmark jams using the heart or join features to track them here!');
+        showCustomPopup("Saved Jams", "No saved jams yet. Bookmark jams using the heart or join features to track them here!");
       } else {
         renderCards(savedJams);
         resultsCount.innerText = `${savedJams.length} Saved Jam(s)`;
@@ -409,7 +430,7 @@ function initProfileDropdownActions() {
       if (!currentUser) return openModal('authModal');
       const attending = (jamsData || []).filter(j => j.rsvpUsers?.includes(currentUser._id));
       if (attending.length === 0) {
-        alert("You haven't RSVP'd to any jams yet. Tap '+ Join In' on any jam card to save your spot!");
+        showCustomPopup("Confirmed RSVPs", "You haven't RSVP'd to any jams yet. Tap '+ Join In' on any jam card to save your spot!");
       } else {
         renderCards(attending);
         resultsCount.innerText = `${attending.length} Confirmed RSVP(s)`;
@@ -422,12 +443,6 @@ function initProfileDropdownActions() {
     btnGear.onclick = () => {
       closeDropdown();
       window.openProfileDrawer();
-      setTimeout(() => {
-        const gearSection = document.getElementById('instrumentsMultiSelector');
-        if (gearSection) {
-          gearSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 150);
     };
   }
 
@@ -435,7 +450,7 @@ function initProfileDropdownActions() {
   if (btnPref) {
     btnPref.onclick = () => {
       closeDropdown();
-      alert('⚙️ Preferences:\n- Default Radius: 25 km\n- Audio Notifications: Enabled\n- Metric Units (km): Enabled');
+      showCustomPopup("⚙️ App Preferences", "• Default Radius: 25 km\n• Audio Notifications: Enabled\n• Metric Units (km): Enabled");
     };
   }
 
@@ -444,7 +459,7 @@ function initProfileDropdownActions() {
     btnSec.onclick = () => {
       closeDropdown();
       const identity = currentUser?.email || currentUser?.phone || 'Guest Account';
-      alert(`🔒 Security Settings:\n\nActive Account: ${identity}\nOAuth Provider: Google / OTP Auth\nToken status: Active & Encrypted`);
+      showCustomPopup("🔒 Account Security", `Active Account: ${identity}\nOAuth Provider: Google / OTP Auth\nToken status: Active & Encrypted`);
     };
   }
 
@@ -452,7 +467,7 @@ function initProfileDropdownActions() {
   if (btnSupp) {
     btnSupp.onclick = () => {
       closeDropdown();
-      alert('🎸 JamPulse Community Guidelines & Help:\n\n1. Be respectful to fellow artists & circle leaders.\n2. Keep session descriptions honest regarding skill level.\n\nNeed Help? Reach us at support@jampulse.com');
+      showCustomPopup("🎸 Community Help & Rules", "1. Be respectful to fellow artists & circle leaders.\n2. Keep session descriptions honest regarding skill level.\n\nNeed Help? Reach us at support@jampulse.com");
     };
   }
 }
@@ -506,7 +521,7 @@ function initMap() {
   map.on('click', async (e) => {
     const hostCoords = document.getElementById('hostCoords');
     if (hostCoords && !hostModal.classList.contains('hidden')) {
-      hostCoords.value = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      hostCoords.value = `${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`;
       fetchReverseGeocode(e.latlng.lat, e.latlng.lng, 'hostLocationName');
     }
   });
@@ -573,19 +588,27 @@ function setLocationToCurrentGPS() {
 }
 
 async function handleManualLocationSearch() {
-  const query = manualLocInput.value.trim();
-  if (!query) return;
+  const rawQuery = manualLocInput.value.trim();
+  if (!rawQuery) return;
 
   btnSearchLocation.innerText = 'Searching...';
   locSuggestions.classList.remove('hidden');
 
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+    const params = new URLSearchParams({
+      format: 'json',
+      q: rawQuery,
+      countrycodes: 'in',
+      limit: '5',
+      addressdetails: '1'
+    });
+
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
     const results = await res.json();
     btnSearchLocation.innerText = 'Search';
 
     if (results.length === 0) {
-      locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#64748b">No areas found.</div>';
+      locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#64748b">No areas found. Try a broader landmark or neighborhood.</div>';
       return;
     }
 
@@ -598,7 +621,7 @@ async function handleManualLocationSearch() {
       div.onclick = () => {
         browsingPosition = { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
         navCityText.innerText = item.name || item.display_name.split(',')[0];
-        map.setView([browsingPosition.lat, browsingPosition.lng], 12);
+        map.setView([browsingPosition.lat, browsingPosition.lng], 13);
         renderRadius();
         closeModals();
         fetchJamsFromBackend();
@@ -607,6 +630,7 @@ async function handleManualLocationSearch() {
     });
   } catch (err) {
     btnSearchLocation.innerText = 'Search';
+    locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#ef4444">Network search error. Try again.</div>';
   }
 }
 
@@ -675,8 +699,7 @@ function renderCards(jams) {
       </div>
 
       <div class="card-tags">
-        <span class="tag-badge vibe-tag">${escapeHtml(jam.vibe)}</span>
-        ${(jam.instrumentsNeeded || []).map(i => `<span class="tag-badge">Need: ${escapeHtml(i)}</span>`).join('')}
+        <span class="tag-badge vibe-tag">${escapeHtml(jam.vibe)}</span>${(jam.instrumentsNeeded || []).map(i => `<span class="tag-badge">Need: ${escapeHtml(i)}</span>`).join('')}
       </div>
 
       <div class="card-bottom">
@@ -923,7 +946,7 @@ mapRecenterBtn.onclick = setLocationToCurrentGPS;
 btnSearchLocation.onclick = handleManualLocationSearch;
 openLoginModalBtn.onclick = () => openModal('authModal');
 openHostBtn.onclick = () => {
-  document.getElementById('hostCoords').value = `${browsingPosition.lat.toFixed(5)}, ${browsingPosition.lng.toFixed(5)}`;
+  document.getElementById('hostCoords').value = `${browsingPosition.lat.toFixed(5)},${browsingPosition.lng.toFixed(5)}`;
   fetchReverseGeocode(browsingPosition.lat, browsingPosition.lng, 'hostLocationName');
   const now = new Date();
   now.setHours(now.getHours() + 1, 0, 0, 0);
@@ -993,7 +1016,7 @@ if (btnShowMap) {
 
 function escapeHtml(str) {
   if (!str) return '';
-  return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+  return String(str).replace(/[`&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
