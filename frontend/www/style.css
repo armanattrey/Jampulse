@@ -1009,7 +1009,9 @@ body {
 /* ==================== 7. MODERN INTERACTIVE ARTIST STUDIO ==================== */
 .modal-profile-card {
   padding: 0 !important;
-  overflow: hidden;
+  overflow-y: auto; /* Enables vertical scrolling on the card */
+  max-height: 85vh; /* Restricts max height to fit within the viewport */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling for mobile */
   border-radius: 24px;
   width: 480px;
   max-width: 95%;
@@ -1025,6 +1027,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  flex-shrink: 0; /* Prevents the banner from shrinking when scrolling */
 }
 
 .banner-gradient-pattern {
@@ -1449,6 +1452,7 @@ body {
     display: none;
   }
 }
+
 /* Ensure the profile modal container scrolls properly */
 #profileModal .modal-content, 
 .profile-drawer-container {
