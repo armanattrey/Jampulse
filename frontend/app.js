@@ -1,4 +1,6 @@
-const API_BASE = 'https://jampulse.onrender.com/api';
+// Same-origin by default; set this before app.js for a separately hosted UI.
+const API_BASE = (window.JAMPALS_API_BASE || '/api').replace(/\/+$/, '');
+const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1';
 const GOOGLE_CLIENT_ID = '326107511624-5h1huttdikntqiot9jig0slaccgdcjj2.apps.googleusercontent.com';
 
 const COOLDOWNS = {
@@ -10,19 +12,27 @@ let map;
 let userLocMarker = null;
 let radiusCircle = null;
 let currentMarkers = [];
+let fittedNearbyMarkers = false;
 let browsingPosition = { lat: 28.4595, lng: 77.0266 };
 let activeRadiusKm = 25;
+const MAX_SEARCH_RADIUS_KM = 20100;
+const RADIUS_SLIDER_STEPS = 1000;
 let activeVibe = 'All';
 let currentSort = 'distance';
 let searchQuery = '';
 let jamsData = [];
 let activeJamStatus = 'ready';
+const demoRsvpIds = new Set();
 
-let token = localStorage.getItem('jam_auth_token') || null;
-let currentUser = JSON.parse(localStorage.getItem('jam_auth_user') || 'null');
+// Demo preview never reuses a signed-in account or sends authenticated requests.
+let token = DEMO_MODE ? null : (localStorage.getItem('jam_auth_token') || null);
+let currentUser = DEMO_MODE ? null : JSON.parse(localStorage.getItem('jam_auth_user') || 'null');
 let pendingAuthContact = '';
+let activeJamForContact = null;
+let activeConversationId = null;
 
 const navCityText = document.getElementById('navCityText');
+const demoModeBadge = document.getElementById('demoModeBadge');
 const locationSelectorBtn = document.getElementById('locationSelectorBtn');
 const locationModal = document.getElementById('locationModal');
 const btnPickGPS = document.getElementById('btnPickGPS');
@@ -33,7 +43,16 @@ const mapRecenterBtn = document.getElementById('mapRecenterBtn');
 
 const mainSearchInput = document.getElementById('mainSearchInput');
 const searchClearBtn = document.getElementById('searchClearBtn');
-const radiusFilterSelect = document.getElementById('radiusFilterSelect');
+const radiusFilterSlider = document.getElementById('radiusFilterSlider');
+const radiusFilterValue = document.getElementById('radiusFilterValue');
+const customRadiusValue = document.getElementById('customRadiusValue');
+const customRadiusSummary = document.getElementById('customRadiusSummary');
+const customRadiusMenu = document.getElementById('customRadiusMenu');
+const mapRadiusLabel = document.getElementById('mapRadiusLabel');
+const distanceFilterSummary = document.getElementById('distanceFilterSummary');
+const distanceFilterMenu = document.getElementById('distanceFilterMenu');
+const radiusPresetButtons = document.querySelectorAll('.radius-preset');
+const genreFilterSelect = document.getElementById('genreFilterSelect');
 const sortFilterSelect = document.getElementById('sortFilterSelect');
 const jamsFeedContainer = document.getElementById('jamsFeedContainer');
 const resultsCount = document.getElementById('resultsCount');
@@ -42,6 +61,7 @@ const authModal = document.getElementById('authModal');
 const hostModal = document.getElementById('hostModal');
 const reviewModal = document.getElementById('reviewModal');
 const contactModal = document.getElementById('contactModal');
+const messagesModal = document.getElementById('messagesModal');
 const profileModal = document.getElementById('profileModal');
 
 const openLoginModalBtn = document.getElementById('openLoginModalBtn');
@@ -77,12 +97,24 @@ async function verifyActiveSession() {
 }
 
 let googleTokenClient = null;
-function initGoogleAuth() {
+function initGoogleAuth(attempt = 0) {
   const triggerBtn = document.getElementById('googleLoginTriggerBtn');
   const btnLabel = document.getElementById('googleBtnLabel');
   if (!triggerBtn) return;
 
-  if (window.google?.accounts?.oauth2 && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('placeholder')) {
+  if (!window.google?.accounts?.oauth2) {
+    if (attempt < 24) {
+      if (btnLabel) btnLabel.innerText = 'Loading Google sign-in...';
+      setTimeout(() => initGoogleAuth(attempt + 1), 250);
+      return;
+    }
+    triggerBtn.disabled = true;
+    triggerBtn.title = 'Google sign-in could not load. Use email or phone instead.';
+    if (btnLabel) btnLabel.innerText = 'Google sign-in unavailable';
+    return;
+  }
+
+  if (GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('placeholder')) {
     try {
       googleTokenClient = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
@@ -114,31 +146,14 @@ function initGoogleAuth() {
         if (googleTokenClient) googleTokenClient.requestAccessToken({ prompt: 'select_account' });
       };
       return;
-    } catch (gErr) {}
+    } catch (gErr) {
+      console.error('Google sign-in initialization failed:', gErr.message);
+    }
   }
 
-  triggerBtn.onclick = async () => {
-    const emailPrompt = prompt("Enter email to test profile:", "musician@gmail.com");
-    if (!emailPrompt) return;
-    try {
-      const res = await fetch(`${API_BASE}/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          credential: btoa(JSON.stringify({
-            email: emailPrompt.trim(),
-            name: emailPrompt.split('@')[0],
-            picture: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'
-          }))
-        })
-      });
-      const data = await res.json();
-      if (data.token) completeAuth(data.token, data.user);
-      else alert(data.error || 'Login rejected.');
-    } catch (e) {
-      alert('Network error.');
-    }
-  };
+  triggerBtn.disabled = true;
+  triggerBtn.title = 'Google sign-in is not configured. Use email or phone instead.';
+  if (btnLabel) btnLabel.innerText = 'Google sign-in unavailable';
 }
 
 window.openProfileDrawer = () => {
@@ -545,12 +560,19 @@ function renderRadius() {
     radius: activeRadiusKm * 1000,
     color: '#e11d48',
     fillColor: '#e11d48',
-    fillOpacity: 0.06,
-    weight: 1.5
+    fillOpacity: 0.08,
+    weight: 2,
+    dashArray: '5 5'
   }).addTo(map);
 }
 
 async function fetchReverseGeocode(lat, lng, targetInputId = null) {
+  if (DEMO_MODE) {
+    const field = targetInputId ? document.getElementById(targetInputId) : null;
+    if (field) field.value = 'Gurugram demo area';
+    else navCityText.innerText = 'Gurugram · Demo';
+    return;
+  }
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
     const data = await res.json();
@@ -567,12 +589,23 @@ async function fetchReverseGeocode(lat, lng, targetInputId = null) {
 }
 
 function setLocationToCurrentGPS() {
+  if (DEMO_MODE) {
+    browsingPosition = { lat: 28.4595, lng: 77.0266 };
+    navCityText.innerText = 'Gurugram · Demo';
+    fittedNearbyMarkers = false;
+    map.setView([browsingPosition.lat, browsingPosition.lng], 11);
+    renderRadius();
+    fetchJamsFromBackend();
+    closeModals();
+    return;
+  }
   navCityText.innerText = 'Locating GPS...';
   closeModals();
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         browsingPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        fittedNearbyMarkers = false;
         map.setView([browsingPosition.lat, browsingPosition.lng], 12);
         renderRadius();
         fetchReverseGeocode(browsingPosition.lat, browsingPosition.lng);
@@ -587,24 +620,45 @@ function setLocationToCurrentGPS() {
   }
 }
 
+const manualGeocodeCache = new Map();
+let lastManualGeocodeRequestAt = 0;
+
 async function handleManualLocationSearch() {
+  if (DEMO_MODE) {
+    showCustomPopup('Demo location', 'This preview uses sample jams around Gurugram. Use the location pin to return to the demo area.');
+    return;
+  }
   const rawQuery = manualLocInput.value.trim();
   if (!rawQuery) return;
+
+  const cacheKey = rawQuery.toLocaleLowerCase();
+  const hasCachedResults = manualGeocodeCache.has(cacheKey);
+  if (!hasCachedResults && Date.now() - lastManualGeocodeRequestAt < 1000) {
+    locSuggestions.classList.remove('hidden');
+    locSuggestions.innerHTML = '<div style="padding:10px;font-size:0.85rem;color:#64748b">Please wait a moment before searching again.</div>';
+    return;
+  }
 
   btnSearchLocation.innerText = 'Searching...';
   locSuggestions.classList.remove('hidden');
 
   try {
-    const params = new URLSearchParams({
-      format: 'json',
-      q: rawQuery,
-      countrycodes: 'in',
-      limit: '5',
-      addressdetails: '1'
-    });
+    let results = manualGeocodeCache.get(cacheKey);
+    if (!hasCachedResults) {
+      const params = new URLSearchParams({
+        format: 'jsonv2',
+        q: rawQuery,
+        countrycodes: 'in',
+        limit: '5',
+        addressdetails: '1'
+      });
 
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-    const results = await res.json();
+      lastManualGeocodeRequestAt = Date.now();
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+      if (!res.ok) throw new Error(`Place search returned ${res.status}.`);
+      results = await res.json();
+      manualGeocodeCache.set(cacheKey, results);
+    }
     btnSearchLocation.innerText = 'Search';
 
     if (results.length === 0) {
@@ -620,6 +674,7 @@ async function handleManualLocationSearch() {
       div.innerHTML = `📍 ${escapeHtml(item.display_name)}`;
       div.onclick = () => {
         browsingPosition = { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
+        fittedNearbyMarkers = false;
         navCityText.innerText = item.name || item.display_name.split(',')[0];
         map.setView([browsingPosition.lat, browsingPosition.lng], 13);
         renderRadius();
@@ -636,11 +691,34 @@ async function handleManualLocationSearch() {
 
 async function fetchJamsFromBackend() {
   resultsCount.innerText = 'Scanning...';
+  if (DEMO_MODE) {
+    jamsData = buildDemoSessions();
+    const filteredJams = jamsData.filter(jam => {
+      const matchesGenre = activeVibe === 'All' || jam.vibe === activeVibe;
+      const searchableText = `${jam.title} ${jam.hostTeam} ${jam.locationName} ${jam.vibe} ${jam.genres.join(' ')}`.toLowerCase();
+      const matchesSearch = !searchQuery || searchableText.includes(searchQuery.toLowerCase());
+      return matchesGenre && matchesSearch;
+    });
+    if (currentSort === 'rating') filteredJams.sort((a, b) => b.averageRating - a.averageRating);
+    else if (currentSort === 'timing') filteredJams.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    else filteredJams.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    const inRangeJams = filteredJams.filter(jam => jam.withinSearchRadius);
+    jamsData = filteredJams;
+    renderCards(inRangeJams);
+    renderPins(jamsData);
+    const outsideCount = jamsData.length - inRangeJams.length;
+    document.getElementById('mapPinSummary').textContent = outsideCount
+      ? `${inRangeJams.length} in your distance · ${outsideCount} beyond it`
+      : `${inRangeJams.length} sample jam${inRangeJams.length === 1 ? '' : 's'} in your distance`;
+    return;
+  }
+
   try {
     const params = new URLSearchParams({
       lat: browsingPosition.lat,
       lng: browsingPosition.lng,
       radiusKm: activeRadiusKm,
+      mapRadiusKm: MAX_SEARCH_RADIUS_KM,
       sortBy: currentSort,
       vibe: activeVibe,
       query: searchQuery
@@ -649,8 +727,13 @@ async function fetchJamsFromBackend() {
     const res = await fetch(`${API_BASE}/jams?${params.toString()}`);
     if (!res.ok) throw new Error(`Status: ${res.status}`);
     jamsData = await res.json();
-    renderCards(jamsData);
+    const inRangeJams = jamsData.filter(jam => jam.withinSearchRadius ?? jam.distanceMeters <= activeRadiusKm * 1000);
+    renderCards(inRangeJams);
     renderPins(jamsData);
+    const outsideCount = jamsData.length - inRangeJams.length;
+    document.getElementById('mapPinSummary').textContent = outsideCount
+      ? `${inRangeJams.length} in your distance · ${outsideCount} beyond it`
+      : `${inRangeJams.length} jam${inRangeJams.length === 1 ? '' : 's'} in your distance`;
   } catch (err) {
     jamsFeedContainer.innerHTML = `
       <div style="background:#fee2e2;color:#991b1b;padding:16px;border-radius:12px;font-size:0.9rem">
@@ -661,16 +744,71 @@ async function fetchJamsFromBackend() {
   }
 }
 
+function buildDemoSessions() {
+  const sampleSessions = [
+    { id: 'demo-acoustic', distanceKm: 4, bearing: 35, title: 'Acoustic rooftop circle', hostTeam: 'The Good Company', hostName: 'Riya Mehta', role: 'Vocalist & guitarist', vibe: 'Acoustic Unplugged', locationName: 'Sector 29, Gurugram', hoursFromNow: 1, rating: 4.8, ratingCount: 12, instruments: ['Cajón', 'Harmony vocals'], description: 'Easygoing acoustic covers and originals. Bring an instrument or just come sing along.' },
+    { id: 'demo-openmic', distanceKm: 9, bearing: 115, title: 'Friday open mic warm-up', hostTeam: 'Mic Check Gurugram', hostName: 'Kabir Anand', role: 'Singer-songwriter', vibe: 'Open Mic', locationName: 'Golf Course Road', hoursFromNow: 2, rating: 4.6, ratingCount: 8, instruments: ['Any instrument'], description: 'Short sets, friendly crowd, and time to meet other local performers.' },
+    { id: 'demo-classical', distanceKm: 17, bearing: 220, title: 'Sufi strings & tabla', hostTeam: 'Mehfil Sessions', hostName: 'Aarav Khan', role: 'Tabla player', vibe: 'Sufi & Classical', locationName: 'Sohna Road', hoursFromNow: 3, rating: 4.9, ratingCount: 15, instruments: ['Harmonium', 'Vocals'], description: 'A relaxed Sufi and classical improvisation. All experience levels are welcome.' },
+    { id: 'demo-electric', distanceKm: 31, bearing: 300, title: 'Electric indie jam', hostTeam: 'Neon Monsoon', hostName: 'Dev Sharma', role: 'Drummer', vibe: 'Electric Jam', locationName: 'Manesar', hoursFromNow: 4, rating: 4.7, ratingCount: 6, instruments: ['Bass', 'Lead guitar'], description: 'Loud amps, indie grooves, and a couple of unfinished songs looking for new ideas.' },
+    { id: 'demo-jazz', distanceKm: 43, bearing: 55, title: 'Late-night jazz sketches', hostTeam: 'Blue Note Friends', hostName: 'Mira Das', role: 'Keyboardist', vibe: 'Jazz & Blues', locationName: 'Faridabad', hoursFromNow: 5, rating: 4.5, ratingCount: 5, instruments: ['Saxophone', 'Upright bass'], description: 'Small combo exploring standards and open-ended blues. Host discovery range: 50 km.' },
+    { id: 'demo-electronic', distanceKm: 22, bearing: 160, title: 'Chill electronic live set', hostTeam: 'Soft Signal', hostName: 'Naina Roy', role: 'Producer', vibe: 'Chill Electronic', locationName: 'Badshahpur', hoursFromNow: 6, rating: 4.7, ratingCount: 9, instruments: ['Synth', 'Percussion'], description: 'Build a mellow live set together with synths, hand percussion, and found sounds.' }
+  ];
+  const earthRadiusKm = 6371.0088;
+  const originLat = browsingPosition.lat * Math.PI / 180;
+  const originLng = browsingPosition.lng * Math.PI / 180;
+
+  return sampleSessions.map(session => {
+    const bearing = session.bearing * Math.PI / 180;
+    const angularDistance = session.distanceKm / earthRadiusKm;
+    const destinationLat = Math.asin(
+      Math.sin(originLat) * Math.cos(angularDistance)
+      + Math.cos(originLat) * Math.sin(angularDistance) * Math.cos(bearing)
+    );
+    const destinationLng = originLng + Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(originLat),
+      Math.cos(angularDistance) - Math.sin(originLat) * Math.sin(destinationLat)
+    );
+    const startTime = new Date(Date.now() + session.hoursFromNow * 60 * 60 * 1000);
+    const endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+
+    return {
+      _id: session.id,
+      title: session.title,
+      description: session.description,
+      hostTeam: session.hostTeam,
+      hostProfile: { name: session.hostName, role: session.role },
+      vibe: session.vibe,
+      genres: [session.vibe],
+      instrumentsNeeded: session.instruments,
+      locationName: session.locationName,
+      location: {
+        type: 'Point',
+        coordinates: [destinationLng * 180 / Math.PI, destinationLat * 180 / Math.PI]
+      },
+      distanceMeters: session.distanceKm * 1000,
+      withinSearchRadius: session.distanceKm <= activeRadiusKm,
+      discoveryRadiusKm: 50,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      status: 'upcoming',
+      averageRating: session.rating,
+      ratingCount: session.ratingCount,
+      rsvpUsers: demoRsvpIds.has(session.id) ? ['demo-viewer'] : []
+    };
+  });
+}
+
 function renderCards(jams) {
   resultsCount.innerText = `${jams.length} Jam${jams.length === 1 ? '' : 's'} near you`;
   jamsFeedContainer.innerHTML = '';
 
   if (jams.length === 0) {
+    const outsideCount = jamsData.filter(jam => jam.withinSearchRadius === false || jam.distanceMeters > activeRadiusKm * 1000).length;
     jamsFeedContainer.innerHTML = `
       <div style="text-align:center;padding:48px 16px;color:#64748b">
         <span style="font-size:2.6rem">🎶</span>
         <h3 style="margin-top:10px;color:#0f172a">No open jam sessions found</h3>
-        <p style="font-size:0.88rem;margin-top:4px">Widen radius or click "+ Host Jam"!</p>
+        <p style="font-size:0.88rem;margin-top:4px">${outsideCount ? `${outsideCount} more ${outsideCount === 1 ? 'jam is' : 'jams are'} marked beyond your distance on the map. Tap a dot or widen your distance.` : 'Widen distance or host a jam to get started.'}</p>
       </div>
     `;
     return;
@@ -682,7 +820,7 @@ function renderCards(jams) {
 
     const distKm = jam.distanceMeters ? (jam.distanceMeters / 1000).toFixed(1) : 'Nearby';
     const startTimeStr = new Date(jam.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isAttending = currentUser && jam.rsvpUsers?.includes(currentUser._id);
+    const isAttending = DEMO_MODE ? demoRsvpIds.has(jam._id) : currentUser && jam.rsvpUsers?.includes(currentUser._id);
 
     card.innerHTML = `
       <div class="card-top">
@@ -729,20 +867,88 @@ function renderPins(jams) {
 
   jams.forEach(jam => {
     const [lng, lat] = jam.location.coordinates;
-    const marker = L.circleMarker([lat, lng], {
-      radius: 9,
-      fillColor: '#e11d48',
-      color: '#ffffff',
-      weight: 2,
-      fillOpacity: 0.95
+    const distanceKm = Number.isFinite(jam.distanceMeters) ? jam.distanceMeters / 1000 : 0;
+    const withinSearchRadius = jam.withinSearchRadius ?? distanceKm <= activeRadiusKm;
+    const distanceLabel = `${distanceKm.toFixed(1)} km`;
+    const startsAt = new Date(jam.startTime);
+    const startsLabel = Number.isFinite(startsAt.getTime())
+      ? startsAt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+      : 'Time not listed';
+    const mapIcon = L.divIcon({
+      className: 'jam-marker-shell',
+      html: `<span class="jam-marker-dot ${withinSearchRadius ? 'is-in-range' : 'is-out-of-range'}"></span>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
+    });
+    const marker = L.marker([lat, lng], {
+      icon: mapIcon,
+      keyboard: true,
+      title: `${jam.title}, hosted by ${jam.hostProfile?.name || jam.hostTeam}, ${distanceLabel} away`
     }).addTo(map);
 
-    marker.bindPopup(`<strong>${escapeHtml(jam.title)}</strong><br>${escapeHtml(jam.locationName)}`);
+    const expandDistance = Math.min(MAX_SEARCH_RADIUS_KM, Math.ceil(distanceKm));
+    const description = typeof jam.description === 'string' && jam.description.trim()
+      ? jam.description.trim().slice(0, 180)
+      : 'No session description yet.';
+    marker.bindPopup(`
+      <article class="jam-map-popup">
+        <span class="jam-map-popup-status ${withinSearchRadius ? 'is-in-range' : 'is-out-of-range'}">${withinSearchRadius ? `Within your ${activeRadiusKm >= MAX_SEARCH_RADIUS_KM ? 'Any distance' : `${activeRadiusKm} km`} range` : 'Beyond selected distance'}</span>
+        <h3>${escapeHtml(jam.title)}</h3>
+        <p class="jam-map-popup-host">Hosted by <strong>${escapeHtml(jam.hostProfile?.name || jam.hostTeam || 'Local jammer')}</strong>${jam.hostProfile?.role ? ` · ${escapeHtml(jam.hostProfile.role)}` : ''}<br>${escapeHtml(jam.hostTeam || '')}</p>
+        <p>${escapeHtml(jam.vibe || 'Open jam')} · ${escapeHtml(jam.locationName || 'Location available on map')}</p>
+        <p>${escapeHtml(startsLabel)} · ${escapeHtml(distanceLabel)} away</p>
+        <p class="jam-map-popup-description">${escapeHtml(description)}</p>
+        ${withinSearchRadius ? '' : `<button class="jam-map-expand-distance" type="button" data-expand-distance="${expandDistance}">Show in list at ${expandDistance} km</button>`}
+        <div class="jam-map-popup-actions">
+          <button type="button" data-map-contact>Contact host</button>
+          <button type="button" data-map-rsvp>Join jam</button>
+        </div>
+      </article>
+    `, { maxWidth: 290, minWidth: 220 });
+    marker.on('popupopen', event => {
+      const popupElement = event.popup.getElement();
+      popupElement?.querySelector('[data-expand-distance]')?.addEventListener('click', clickEvent => {
+        clickEvent.stopPropagation();
+        setSearchRadius(clickEvent.currentTarget.dataset.expandDistance);
+        map.closePopup();
+      });
+      popupElement?.querySelector('[data-map-contact]')?.addEventListener('click', () => {
+        map.closePopup();
+        openContactModal(jam);
+      });
+      popupElement?.querySelector('[data-map-rsvp]')?.addEventListener('click', () => {
+        map.closePopup();
+        handleRsvp(jam._id);
+      });
+    });
     currentMarkers.push(marker);
   });
+
+  fitMapToNearbyMarkers(jams);
+}
+
+function fitMapToNearbyMarkers(jams) {
+  if (fittedNearbyMarkers || !jams?.length || !map) return;
+  const mapIsHiddenOnPhone = window.matchMedia('(max-width: 760px)').matches
+    && !document.querySelector('.content-wrapper')?.classList.contains('show-map');
+  if (mapIsHiddenOnPhone) return;
+
+  const points = [[browsingPosition.lat, browsingPosition.lng], ...jams.map(jam => [jam.location.coordinates[1], jam.location.coordinates[0]])];
+  map.fitBounds(L.latLngBounds(points).pad(0.12), { maxZoom: 12, padding: [24, 24], animate: false });
+  fittedNearbyMarkers = true;
 }
 
 async function handleRsvp(jamId) {
+  if (DEMO_MODE) {
+    const wasAttending = demoRsvpIds.has(jamId);
+    if (wasAttending) demoRsvpIds.delete(jamId);
+    else demoRsvpIds.add(jamId);
+    showCustomPopup('Demo action', wasAttending
+      ? 'You left this sample jam. No account or real RSVP was changed.'
+      : 'You joined this sample jam. No account or real RSVP was changed.');
+    fetchJamsFromBackend();
+    return;
+  }
   if (!token) return openModal('authModal');
   try {
     const res = await fetch(`${API_BASE}/jams/${jamId}/rsvp`, {
@@ -758,6 +964,10 @@ async function handleRsvp(jamId) {
 
 document.getElementById('hostJamForm').onsubmit = async (e) => {
   e.preventDefault();
+  if (DEMO_MODE) {
+    showCustomPopup('Demo action', 'Hosting is simulated in this preview. No jam was saved or sent to the backend.');
+    return;
+  }
   if (!token) return openModal('authModal');
 
   const coordsRaw = document.getElementById('hostCoords').value;
@@ -772,8 +982,9 @@ document.getElementById('hostJamForm').onsubmit = async (e) => {
     locationName: document.getElementById('hostLocationName').value,
     lat: coords[0],
     lng: coords[1],
-    startTime: document.getElementById('hostStartTime').value,
-    endTime: document.getElementById('hostEndTime').value,
+    startTime: new Date(document.getElementById('hostStartTime').value).toISOString(),
+    endTime: new Date(document.getElementById('hostEndTime').value).toISOString(),
+    discoveryRadiusKm: Number(document.getElementById('hostDiscoveryRadius').value),
     instrumentsNeeded: document.getElementById('hostInstruments').value.split(',').map(s => s.trim()).filter(Boolean),
     description: document.getElementById('hostDesc').value
   };
@@ -802,10 +1013,150 @@ document.getElementById('hostJamForm').onsubmit = async (e) => {
 };
 
 function openContactModal(jam) {
+  if (DEMO_MODE) {
+    showCustomPopup('Demo contact', `This sample session is hosted by ${jam.hostProfile?.name || jam.hostTeam}. No message was sent and no contact details were shared.`);
+    return;
+  }
+  activeJamForContact = jam;
   document.getElementById('contactSubtitleHeader').innerText = `${jam.title} (${jam.hostTeam})`;
-  const cleanPhone = (jam.hostPhone || '919999999999').replace(/[^\d]/g, '');
-  document.getElementById('whatsappContactLink').href = `https://wa.me/${cleanPhone}`;
+  const whatsappLink = document.getElementById('whatsappContactLink');
+  const cleanPhone = typeof jam.hostPhone === 'string' ? jam.hostPhone.replace(/[^\d]/g, '') : '';
+  whatsappLink.href = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
+  whatsappLink.classList.toggle('hidden', !cleanPhone);
   openModal('contactModal');
+}
+
+async function openJamConversation(jam) {
+  if (DEMO_MODE) {
+    showCustomPopup('Demo message', 'In-app messaging is simulated in this preview. No message was sent.');
+    return;
+  }
+  if (!token) {
+    closeModals();
+    return openModal('authModal');
+  }
+  const button = document.getElementById('inAppContactBtn');
+  button.disabled = true;
+  button.textContent = 'Opening conversation…';
+  try {
+    const response = await fetch(`${API_BASE}/chat/initiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ jamSessionId: jam._id })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Could not start a conversation.');
+    activeConversationId = data.conversationId;
+    closeModals();
+    openModal('messagesModal');
+    await loadConversations(activeConversationId);
+  } catch (error) {
+    alert(error.message || 'Could not connect to messaging.');
+  } finally {
+    button.disabled = false;
+    button.textContent = '✉ Send In-App Message';
+  }
+}
+
+async function openMessages() {
+  if (DEMO_MODE) {
+    return showCustomPopup('Demo messages', 'Messaging is simulated in this preview. No inbox or messages were opened.');
+  }
+  if (!token) return openModal('authModal');
+  closeDropdown();
+  activeConversationId = null;
+  openModal('messagesModal');
+  await loadConversations();
+}
+
+async function loadConversations(preferredId = activeConversationId) {
+  const list = document.getElementById('conversationList');
+  const panel = document.getElementById('chatPanel');
+  list.innerHTML = '<div class="conversation-empty">Loading conversations…</div>';
+  try {
+    const response = await fetch(`${API_BASE}/chat/conversations`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const conversations = await response.json();
+    if (!response.ok) throw new Error(conversations.error || 'Could not load conversations.');
+    list.innerHTML = '';
+    if (!conversations.length) {
+      list.innerHTML = '<div class="conversation-empty">No conversations yet.</div>';
+      panel.innerHTML = '<div class="chat-empty-state">Contact a jam host to start a conversation.</div>';
+      return;
+    }
+
+    conversations.forEach(conversation => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `conversation-item${conversation._id === preferredId ? ' active' : ''}`;
+      item.dataset.conversationId = conversation._id;
+      item.innerHTML = `<strong>${escapeHtml(conversation.otherParticipant?.name || 'Musician')}</strong><span>${escapeHtml(conversation.jamSession?.title || 'Jam conversation')} · ${escapeHtml(conversation.lastMessage?.text || 'Conversation started')}</span>`;
+      item.onclick = () => {
+        activeConversationId = conversation._id;
+        loadConversations(conversation._id);
+      };
+      list.appendChild(item);
+    });
+
+    const selected = conversations.find(conversation => conversation._id === preferredId) || conversations[0];
+    activeConversationId = selected._id;
+    list.querySelector(`[data-conversation-id="${selected._id}"]`)?.classList.add('active');
+    await loadConversationThread(selected);
+  } catch (error) {
+    list.innerHTML = `<div class="conversation-empty">${escapeHtml(error.message || 'Could not load conversations.')}</div>`;
+    panel.innerHTML = '<div class="chat-empty-state">Try opening Messages again.</div>';
+  }
+}
+
+async function loadConversationThread(conversation) {
+  const panel = document.getElementById('chatPanel');
+  const otherName = conversation.otherParticipant?.name || 'Musician';
+  const jamTitle = conversation.jamSession?.title || 'Jam conversation';
+  panel.innerHTML = `<div class="chat-thread-header"><strong>${escapeHtml(otherName)}</strong><span>${escapeHtml(jamTitle)}</span></div><div class="chat-messages" id="chatMessages"><div class="chat-empty-state">Loading messages…</div></div><form class="chat-composer" id="chatComposer"><input id="chatMessageInput" type="text" maxlength="1000" autocomplete="off" placeholder="Write a message…" aria-label="Write a message" required /><button class="btn btn-brand" type="submit">Send</button></form>`;
+  const messagesContainer = document.getElementById('chatMessages');
+  try {
+    const response = await fetch(`${API_BASE}/chat/${conversation._id}/messages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const messages = await response.json();
+    if (!response.ok) throw new Error(messages.error || 'Could not load messages.');
+    if (!messages.length) {
+      messagesContainer.innerHTML = '<div class="chat-empty-state">Say hello and ask about the session.</div>';
+    } else {
+      messagesContainer.innerHTML = messages.map(message => {
+        const ownMessage = String(message.sender) === String(currentUser?._id);
+        const time = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `<div class="chat-message${ownMessage ? ' own' : ''}">${escapeHtml(message.text)}<small>${ownMessage ? 'You' : escapeHtml(message.senderName)} · ${time}</small></div>`;
+      }).join('');
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  } catch (error) {
+    messagesContainer.innerHTML = `<div class="chat-empty-state">${escapeHtml(error.message || 'Could not load messages.')}</div>`;
+  }
+
+  document.getElementById('chatComposer').onsubmit = async event => {
+    event.preventDefault();
+    const input = document.getElementById('chatMessageInput');
+    const sendButton = event.currentTarget.querySelector('button[type="submit"]');
+    const text = input.value.trim();
+    if (!text || !activeConversationId) return;
+    sendButton.disabled = true;
+    try {
+      const response = await fetch(`${API_BASE}/chat/${activeConversationId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not send message.');
+      await loadConversations(activeConversationId);
+    } catch (error) {
+      alert(error.message || 'Could not send message.');
+    } finally {
+      sendButton.disabled = false;
+    }
+  };
 }
 
 const tabPhone = document.getElementById('tabPhone');
@@ -912,7 +1263,7 @@ window.openModal = (id) => {
 };
 
 window.closeModals = () => {
-  [authModal, hostModal, reviewModal, locationModal, contactModal, profileModal].forEach(m => {
+  [authModal, hostModal, reviewModal, locationModal, contactModal, messagesModal, profileModal].forEach(m => {
     if (m) m.classList.add('hidden');
   });
   const p1 = document.getElementById('phoneStep1');
@@ -932,7 +1283,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-[authModal, hostModal, reviewModal, locationModal, contactModal, profileModal].forEach(backdrop => {
+[authModal, hostModal, reviewModal, locationModal, contactModal, messagesModal, profileModal].forEach(backdrop => {
   if (backdrop) {
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) closeModals();
@@ -944,7 +1295,11 @@ locationSelectorBtn.onclick = () => openModal('locationModal');
 btnPickGPS.onclick = setLocationToCurrentGPS;
 mapRecenterBtn.onclick = setLocationToCurrentGPS;
 btnSearchLocation.onclick = handleManualLocationSearch;
-openLoginModalBtn.onclick = () => openModal('authModal');
+openLoginModalBtn.onclick = () => DEMO_MODE
+  ? showCustomPopup('Demo sign-in', 'Sign-in providers are not connected in this sample preview.')
+  : openModal('authModal');
+document.getElementById('inAppContactBtn').onclick = () => activeJamForContact && openJamConversation(activeJamForContact);
+document.getElementById('btnMessages').onclick = openMessages;
 openHostBtn.onclick = () => {
   document.getElementById('hostCoords').value = `${browsingPosition.lat.toFixed(5)},${browsingPosition.lng.toFixed(5)}`;
   fetchReverseGeocode(browsingPosition.lat, browsingPosition.lng, 'hostLocationName');
@@ -956,20 +1311,51 @@ openHostBtn.onclick = () => {
   openModal('hostModal');
 };
 
-document.querySelectorAll('.rail-item').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.rail-item').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeVibe = btn.dataset.vibe;
-    fetchJamsFromBackend();
-  };
+genreFilterSelect.addEventListener('change', () => {
+  activeVibe = genreFilterSelect.value;
+  fetchJamsFromBackend();
 });
 
-radiusFilterSelect.onchange = (e) => {
-  activeRadiusKm = parseInt(e.target.value, 10);
+function setSearchRadius(value, shouldFetch = true) {
+  activeRadiusKm = Math.max(1, Math.min(MAX_SEARCH_RADIUS_KM, Number(value)));
+  const sliderPosition = activeRadiusKm >= MAX_SEARCH_RADIUS_KM
+    ? RADIUS_SLIDER_STEPS
+    : Math.round(Math.log(activeRadiusKm) / Math.log(MAX_SEARCH_RADIUS_KM) * RADIUS_SLIDER_STEPS);
+  const radiusLabel = activeRadiusKm >= MAX_SEARCH_RADIUS_KM ? 'Any distance' : `${activeRadiusKm} km`;
+  radiusFilterSlider.value = String(sliderPosition);
+  radiusFilterValue.value = radiusLabel;
+  radiusFilterValue.textContent = radiusLabel;
+  customRadiusValue.value = radiusLabel;
+  customRadiusValue.textContent = radiusLabel;
+  customRadiusSummary.textContent = [5, 10, 25].includes(activeRadiusKm) ? 'Choose a range' : radiusLabel;
+  distanceFilterSummary.textContent = radiusLabel;
+  mapRadiusLabel.textContent = radiusLabel;
+  radiusFilterSlider.setAttribute('aria-valuenow', String(activeRadiusKm));
+  radiusFilterSlider.setAttribute('aria-valuetext', radiusLabel === 'Any distance' ? 'Any distance, worldwide search' : `${activeRadiusKm} kilometers`);
+  radiusPresetButtons.forEach(button => {
+    const isSelected = Number(button.dataset.radius) === activeRadiusKm;
+    button.classList.toggle('is-active', isSelected);
+    button.setAttribute('aria-pressed', String(isSelected));
+  });
   renderRadius();
-  fetchJamsFromBackend();
-};
+  if (shouldFetch) fetchJamsFromBackend();
+}
+
+radiusFilterSlider.addEventListener('input', event => {
+  const position = Number(event.target.value);
+  const value = position >= RADIUS_SLIDER_STEPS
+    ? MAX_SEARCH_RADIUS_KM
+    : Math.max(1, Math.round(Math.exp(position / RADIUS_SLIDER_STEPS * Math.log(MAX_SEARCH_RADIUS_KM))));
+  setSearchRadius(value, false);
+});
+radiusFilterSlider.addEventListener('change', () => fetchJamsFromBackend());
+radiusPresetButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    setSearchRadius(button.dataset.radius);
+    customRadiusMenu.open = false;
+    distanceFilterMenu.open = false;
+  });
+});
 
 sortFilterSelect.onchange = (e) => {
   currentSort = e.target.value;
@@ -998,7 +1384,9 @@ const btnShowMap = document.getElementById('btnShowMap');
 if (btnShowList) {
   btnShowList.onclick = (e) => {
     btnShowMap?.classList.remove('active');
-    e.target.classList.add('active');
+    e.currentTarget.classList.add('active');
+    btnShowMap?.setAttribute('aria-pressed', 'false');
+    btnShowList.setAttribute('aria-pressed', 'true');
     contentWrapper?.classList.remove('show-map');
   };
 }
@@ -1006,10 +1394,13 @@ if (btnShowList) {
 if (btnShowMap) {
   btnShowMap.onclick = (e) => {
     btnShowList?.classList.remove('active');
-    e.target.classList.add('active');
+    e.currentTarget.classList.add('active');
+    btnShowMap.setAttribute('aria-pressed', 'true');
+    btnShowList?.setAttribute('aria-pressed', 'false');
     contentWrapper?.classList.add('show-map');
     setTimeout(() => {
       if (map) map.invalidateSize();
+      fitMapToNearbyMarkers(jamsData);
     }, 200);
   };
 }
@@ -1020,9 +1411,13 @@ function escapeHtml(str) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  if (DEMO_MODE) {
+    document.title = 'JamPulse Demo — Sample Sessions';
+    demoModeBadge?.classList.remove('hidden');
+  }
   initMap();
-  verifyActiveSession();
+  if (!DEMO_MODE) verifyActiveSession();
   initProfileDropdownActions();
   setLocationToCurrentGPS();
-  setTimeout(initGoogleAuth, 400);
+  if (!DEMO_MODE) setTimeout(initGoogleAuth, 400);
 });

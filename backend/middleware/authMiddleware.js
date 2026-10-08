@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'jampulse_dev_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'local_jampals_dev_secret');
+if (!JWT_SECRET) throw new Error('JWT_SECRET must be set when NODE_ENV=production.');
 
 module.exports = async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -12,7 +13,7 @@ module.exports = async function authMiddleware(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id || decoded._id).select('-phone -email');
+    const user = await User.findById(decoded.userId || decoded.id || decoded._id);
     if (!user) {
       return res.status(401).json({ error: 'User not found or invalid token.' });
     }

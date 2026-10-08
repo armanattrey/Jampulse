@@ -1,24 +1,11 @@
 {
-  "name": "jamcircle-backend",
-  "version": "2.0.0",
-  "description": "Full-featured open platform for real-time music jams & musician circles",
+  "name": "jampals-workspace",
+  "version": "1.0.0",
+  "description": "Workspace launcher for the Jampals API",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "npm --prefix backend start",
+    "dev": "npm --prefix backend run dev"
   },
-  "dependencies": {
-    "cors": "^2.8.6",
-    "deep-email-validator": "^0.1.27",
-    "dotenv": "^16.6.1",
-    "express": "^4.22.3",
-    "google-auth-library": "^11.1.0",
-    "jsonwebtoken": "^9.0.3",
-    "libphonenumber-js": "^1.13.14",
-    "mongoose": "^8.24.4",
-    "nodemailer": "^10.0.13"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
-  }
+  "private": true
 }

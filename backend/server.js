@@ -1,137 +1,131 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
-require('dotenv').config();
+
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const authRoutes = require('./routes/auth');
 const jamRoutes = require('./routes/jams');
 const reviewRoutes = require('./routes/reviews');
 const chatRoutes = require('./routes/chat');
-const JamSession = require('./models/JamSession');
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = Number(process.env.PORT) || 5001;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/jampals';
+const FRONTEND_DIR = path.resolve(__dirname, '../frontend');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const nativeAppOrigins = ['https://localhost', 'capacitor://localhost', 'http://localhost'];
 
-// 1. Core Middleware
+app.disable('x-powered-by');
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  origin(origin, callback) {
+    // Same-origin website requests need no CORS headers. Cross-origin access
+    // is granted only to origins explicitly listed in ALLOWED_ORIGINS.
+    const isAllowed = !origin || process.env.NODE_ENV !== 'production'
+      || allowedOrigins.includes(origin)
+      || nativeAppOrigins.includes(origin);
+    return callback(null, isAllowed);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(express.json({ limit: '1mb' }));
 
-app.use(express.json());
-
-// 2. Resolve Static Assets Directory (checks ../frontend, ../public, or ./public)
-const possibleFrontendPaths = [
-  path.join(__dirname, '../frontend'),
-  path.join(__dirname, 'frontend'),
-  path.join(__dirname, '../public'),
-  path.join(__dirname, 'public')
-];
-
-let staticDir = possibleFrontendPaths.find(p => fs.existsSync(p)) || path.join(__dirname, '../frontend');
-app.use(express.static(staticDir));
-
-// 3. Database Connection & Seeding
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/jamcircle';
-
-mongoose.connect(MONGO_URI)
-  .then(async () => {
-    console.log('✅ Connected to MongoDB Atlas (jamcircle)');
-    await seedDemoJams();
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB Connection Error:', err.message);
+// Serve only the active website assets. The frontend folder also contains the
+// Android project and build files, which should not be exposed as web assets.
+const websiteFiles = {
+  '/': 'index.html',
+  '/index.html': 'index.html',
+  '/app.js': 'app.js',
+  '/style.css': 'style.css'
+};
+for (const [route, fileName] of Object.entries(websiteFiles)) {
+  app.get(route, (req, res, next) => {
+    res.sendFile(path.join(FRONTEND_DIR, fileName), (error) => {
+      if (error) next(error);
+    });
   });
-
-async function seedDemoJams() {
-  try {
-    const count = await JamSession.countDocuments();
-    if (count === 0) {
-      const now = new Date();
-      const mockUserId = new mongoose.Types.ObjectId();
-
-      await JamSession.create([
-        {
-          title: "Sunset Unplugged Vibes & Sufi Jam",
-          description: "Open vocal & guitar circle under the trees. Beginners, pros, cajonists and listeners all welcome to sit and sing along!",
-          hostTeam: "Acoustic Nomads",
-          hostUser: mockUserId,
-          vibe: "Acoustic Unplugged",
-          genres: ["Indie Folk", "Sufi", "Pop Classics"],
-          instrumentsNeeded: ["Flute", "Djembe", "Harmonies"],
-          locationName: "Amphitheater, Sector 29 Leisure Valley",
-          address: "Leisure Valley Park, Gurugram",
-          location: { type: "Point", coordinates: [77.0688, 28.4682] },
-          startTime: new Date(now.getTime() + 1000 * 60 * 45),
-          endTime: new Date(now.getTime() + 1000 * 60 * 240),
-          averageRating: 4.9,
-          ratingCount: 18,
-          status: "live"
-        },
-        {
-          title: "Electric Blues & Hard Rock Improv",
-          description: "We bring standard amps, cables & mic stands. Bring pedals, electric guitars or sax! Let's build spontaneous grooves.",
-          hostTeam: "The High Gain Collective",
-          hostUser: mockUserId,
-          vibe: "Electric Jam",
-          genres: ["Classic Rock", "Blues", "Funk"],
-          instrumentsNeeded: ["Bass", "Lead Vocals", "Keyboard"],
-          locationName: "CyberHub Rooftop Greens",
-          address: "DLF CyberHub, DLF Phase 2",
-          location: { type: "Point", coordinates: [77.0878, 28.4952] },
-          startTime: new Date(now.getTime() + 1000 * 60 * 180),
-          endTime: new Date(now.getTime() + 1000 * 60 * 360),
-          averageRating: 4.7,
-          ratingCount: 29,
-          status: "upcoming"
-        },
-        {
-          title: "Lo-Fi Beats, Keys & Ambient Chill",
-          description: "Chill listening vibe with synths, handpans, acoustic guitars, and coffee.",
-          hostTeam: "Underground Frequency",
-          hostUser: mockUserId,
-          vibe: "Chill Electronic",
-          genres: ["Lo-Fi", "Neo Soul", "Ambient"],
-          instrumentsNeeded: ["Keys", "Melodica"],
-          locationName: "Aravali Biodiversity Park Trail Lawn",
-          address: "Near Guru Dronacharya Metro, MG Road",
-          location: { type: "Point", coordinates: [77.1065, 28.4891] },
-          startTime: new Date(now.getTime() + 1000 * 60 * 300),
-          endTime: new Date(now.getTime() + 1000 * 60 * 480),
-          averageRating: 5.0,
-          ratingCount: 8,
-          status: "upcoming"
-        }
-      ]);
-      console.log('🎸 Seeded 3 rich musical jam sessions for exploration.');
-    }
-  } catch (e) {
-    console.error('Error seeding data:', e.message);
-  }
 }
 
-// 4. API Endpoints
+app.get('/health', (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({
+    status: connected ? 'ok' : 'starting',
+    app: 'Jampals API',
+    database: connected ? 'connected' : 'disconnected'
+  });
+});
+
+app.get('/api', (req, res) => {
+  res.json({
+    name: 'Jampals API',
+    version: 1,
+    endpoints: ['/api/auth', '/api/jams', '/api/reviews', '/api/chat'],
+    health: '/health'
+  });
+});
+
+// Keep the API reachable while MongoDB is unavailable so health checks and
+// database status remain observable. Data routes fail fast until it reconnects.
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState === 1) return next();
+  return res.status(503).json({ error: 'The database is temporarily unavailable. Please try again shortly.' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/jams', jamRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 
-app.get('/health', (req, res) => res.json({ status: 'live', app: 'JamPulse API Engine' }));
+app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
-// 5. Client-Side Routing Fallback
-app.get('*', (req, res) => {
-  const indexPath = path.join(staticDir, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend index.html not found.');
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || 500;
+  res.status(status).json({ error: status >= 500 ? 'Unexpected server error.' : err.message });
+});
+
+async function start() {
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    throw new Error('Set JWT_SECRET in the hosting service environment.');
   }
-});
 
-// 6. Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 JamPulse server running at http://localhost:${PORT}`);
-});
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Jampals API listening on port ${PORT}`);
+  });
+
+  const connectToDatabase = () => mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: Number(process.env.MONGO_CONNECT_TIMEOUT_MS) || 5000
+  }).then(() => {
+    console.log('MongoDB connected.');
+  }).catch((error) => {
+    console.error(`MongoDB connection unavailable: ${error.message}`);
+  });
+
+  await connectToDatabase();
+  const reconnectTimer = setInterval(() => {
+    if (mongoose.connection.readyState === 0) connectToDatabase();
+  }, 15000);
+
+  const shutdown = async () => {
+    clearInterval(reconnectTimer);
+    await new Promise((resolve) => server.close(resolve));
+    await mongoose.disconnect();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+}
+
+if (require.main === module) {
+  start().catch((error) => {
+    console.error(`Could not start Jampals API: ${error.message}`);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, start };

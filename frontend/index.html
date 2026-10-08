@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="JamPulse — Discover and host live music circles near you." />
   <title>JamPulse — Live Music Circles Near You</title>
   
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- Cache buster added below so new styles take effect immediately -->
-  <link rel="stylesheet" href="style.css?v=2.2" />
+  <link rel="stylesheet" href="style.css?v=2.4" />
 </head>
 <body>
 
@@ -22,6 +22,7 @@
       <div class="brand">
         <span class="brand-icon" aria-hidden="true">🎸</span>
         <span class="brand-text">Jam<strong>Pulse</strong></span>
+        <span class="demo-mode-badge hidden" id="demoModeBadge" role="status">DEMO · SAMPLE JAMS</span>
       </div>
 
       <button class="location-pill" id="locationSelectorBtn" title="Change Location" aria-label="Change current location">
@@ -70,6 +71,9 @@
           <button class="dropdown-item" id="btnJamInvites" role="menuitem">
             <span class="item-icon">🎟️</span> Jam Invitations & RSVPs
           </button>
+          <button class="dropdown-item" id="btnMessages" role="menuitem">
+            <span class="item-icon">✉️</span> Messages
+          </button>
 
           <div class="dropdown-divider"></div>
           <div class="dropdown-header">
@@ -102,44 +106,63 @@
     </div>
   </header>
 
-  <nav class="category-rail" aria-label="Music categories">
-    <div class="rail-inner">
-      <button class="rail-item active" data-vibe="All">🔥 All Jams</button>
-      <button class="rail-item" data-vibe="Acoustic Unplugged">🪕 Acoustic</button>
-      <button class="rail-item" data-vibe="Electric Jam">⚡ Electric</button>
-      <button class="rail-item" data-vibe="Open Mic">🎙️ Open Mic</button>
-      <button class="rail-item" data-vibe="Sufi & Classical">🪘 Classical</button>
-      <button class="rail-item" data-vibe="Chill Electronic">🎧 Electronic</button>
-      <button class="rail-item" data-vibe="Jazz & Blues">🎷 Jazz</button>
-    </div>
-
-    <div class="mobile-view-toggle">
-      <button class="toggle-btn active" id="btnShowList">List</button>
-      <button class="toggle-btn" id="btnShowMap">Map</button>
-    </div>
-  </nav>
-
   <main class="content-wrapper">
     <section class="feed-section" id="feedSection">
       <div class="filter-strip">
-        <div class="filter-group">
-          <label for="radiusFilterSelect">Radius:</label>
-          <select id="radiusFilterSelect">
-            <option value="5">Within 5 km</option>
-            <option value="10">Within 10 km</option>
-            <option value="25" selected>Within 25 km</option>
-            <option value="50">Within 50 km</option>
-            <option value="100">Within 100 km</option>
+        <div class="filter-group genre-filter">
+          <label for="genreFilterSelect">Genre</label>
+          <select id="genreFilterSelect" aria-label="Filter jams by genre">
+            <option value="All">All jams</option>
+            <option value="Acoustic Unplugged">Acoustic</option>
+            <option value="Electric Jam">Electric</option>
+            <option value="Open Mic">Open mic</option>
+            <option value="Sufi & Classical">Sufi &amp; classical</option>
+            <option value="Chill Electronic">Electronic</option>
+            <option value="Jazz & Blues">Jazz &amp; blues</option>
           </select>
         </div>
 
+        <details class="filter-group distance-filter" id="distanceFilterMenu">
+          <summary>
+            <span>Distance</span><strong id="distanceFilterSummary">25 km</strong>
+          </summary>
+          <div class="distance-filter-panel">
+            <div class="radius-filter" role="group" aria-labelledby="radiusFilterLabel">
+              <div class="radius-filter-heading">
+                <span id="radiusFilterLabel">Quick distances</span>
+                <output id="radiusFilterValue" aria-live="polite">25 km</output>
+              </div>
+              <div class="radius-presets" role="group" aria-label="Quick distance choices">
+                <button type="button" class="radius-preset" data-radius="5" aria-pressed="false">5 km</button>
+                <button type="button" class="radius-preset" data-radius="10" aria-pressed="false">10 km</button>
+                <button type="button" class="radius-preset is-active" data-radius="25" aria-pressed="true">25 km</button>
+              </div>
+              <details class="custom-radius-control" id="customRadiusMenu">
+                <summary><span>Custom</span><span id="customRadiusSummary">Choose a range</span></summary>
+                <div class="custom-radius-panel">
+                  <label for="radiusFilterSlider">Choose from 1 km to any distance</label>
+                  <output id="customRadiusValue" for="radiusFilterSlider" aria-live="polite">25 km</output>
+                  <input id="radiusFilterSlider" type="range" min="0" max="1000" step="1" value="325"
+                    aria-label="Custom search distance from 1 kilometer to any distance" aria-valuemin="1" aria-valuemax="20100" aria-valuenow="25" aria-valuetext="25 kilometers">
+                  <div class="radius-range-labels" aria-hidden="true"><span>1 km</span><span>Any distance</span></div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </details>
+
         <div class="filter-group">
-          <label for="sortFilterSelect">Sort:</label>
+          <label for="sortFilterSelect">Sort</label>
           <select id="sortFilterSelect">
-            <option value="distance" selected>Distance: Nearest</option>
-            <option value="rating">Top Rated</option>
-            <option value="timing">Happening Soon</option>
+            <option value="distance" selected>Nearest</option>
+            <option value="rating">Top rated</option>
+            <option value="timing">Happening soon</option>
           </select>
+        </div>
+
+        <div class="mobile-view-toggle" aria-label="Choose map or list view">
+          <button class="toggle-btn active" id="btnShowList" type="button" aria-pressed="true">List</button>
+          <button class="toggle-btn" id="btnShowMap" type="button" aria-pressed="false">Map</button>
         </div>
 
         <span class="results-count" id="resultsCount" aria-live="polite">Scanning nearby jams...</span>
@@ -150,6 +173,12 @@
 
     <section class="map-section" id="mapSection">
       <div id="leafletMap"></div>
+      <div class="map-radius-badge" aria-live="polite"><span>Search radius</span><strong id="mapRadiusLabel">25 km</strong></div>
+      <div class="map-legend" aria-label="Map marker guide">
+        <div class="map-legend-key"><span class="map-legend-dot in-range" aria-hidden="true"></span><span>Inside selected distance</span></div>
+        <div class="map-legend-key"><span class="map-legend-dot beyond-range" aria-hidden="true"></span><span>Outside your selected distance</span></div>
+        <p id="mapPinSummary" aria-live="polite">Choose a dot to see jam details.</p>
+      </div>
       <button class="map-recenter-btn" id="mapRecenterBtn" title="Switch to current GPS location" aria-label="Recenter map to current location">🎯</button>
     </section>
   </main>
@@ -336,6 +365,16 @@
         </div>
 
         <div class="form-group">
+          <label for="hostDiscoveryRadius">Discovery Radius</label>
+          <select id="hostDiscoveryRadius">
+            <option value="5">Within 5 km</option>
+            <option value="10" selected>Within 10 km</option>
+            <option value="25">Within 25 km</option>
+            <option value="50">Within 50 km</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="hostInstruments">Instruments Welcome / Needed</label>
           <input type="text" id="hostInstruments" placeholder="e.g. Cajon, Acoustic Guitar, Flute, Harmony Vocals" />
         </div>
@@ -412,6 +451,23 @@
         <button id="inAppContactBtn" class="btn btn-brand" type="button">
           ✉ Send In-App Message
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-App Messages -->
+  <div class="modal-backdrop hidden" id="messagesModal" role="dialog" aria-modal="true" aria-labelledby="messagesTitle">
+    <div class="modal-card messages-modal-card">
+      <button class="close-modal-btn" onclick="closeModals()" aria-label="Close messages">&times;</button>
+      <div class="modal-header">
+        <h3 id="messagesTitle">Messages</h3>
+        <p>Talk with musicians about the jam.</p>
+      </div>
+      <div class="messages-layout">
+        <div class="conversation-list" id="conversationList" aria-label="Conversations"></div>
+        <section class="chat-panel" id="chatPanel" aria-live="polite">
+          <div class="chat-empty-state">Choose a conversation or contact a jam host to get started.</div>
+        </section>
       </div>
     </div>
   </div>
@@ -575,6 +631,6 @@
   </button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=2.5"></script>
 </body>
 </html>

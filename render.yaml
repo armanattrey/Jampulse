@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: jampals-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --prefix backend
+    startCommand: npm --prefix backend start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const JamSessionSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
+  description: { type: String, default: '', trim: true, maxlength: 3000 },
   hostTeam: { type: String, required: true, trim: true },
   hostUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   vibe: {
@@ -14,6 +14,7 @@ const JamSessionSchema = new mongoose.Schema({
   instrumentsNeeded: [{ type: String }],
   locationName: { type: String, required: true },
   address: { type: String, default: '' },
+  discoveryRadiusKm: { type: Number, enum: [5, 10, 25, 50], default: 10 },
   location: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], required: true } // [longitude, latitude]

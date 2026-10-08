@@ -1,0 +1,265 @@
+JAMPALS — PROJECT MAP AND SELF-STUDY GUIDE
+==========================================
+
+Purpose
+-------
+Jampals helps musicians host local jam sessions. Hosts choose how far away a jam may be discovered (5, 10, 25, or 50 km). Visitors can search using quick 5/10/25 km choices or a custom range from 1 km through “Any distance” (global search). They can find nearby active/upcoming jams, RSVP, review sessions, and communicate through jam conversations. Map results may show sessions beyond the selected list distance when each host allows discovery at that range. The website and Android phone app share the same backend and API behavior, while their designs can differ.
+
+This guide describes what is present in this repository and gives search topics in a useful learning order. Optional integrations are marked as optional; they require their own credentials/accounts to send real messages or authenticate real users.
+
+1. LANGUAGES AND MAIN TECHNOLOGIES
+----------------------------------
+JavaScript (browser): frontend behavior, browser APIs, fetch requests, local storage, and Leaflet map interaction. Start with variables, functions, arrays/objects, async/await, promises, modules, DOM events, and JSON.
+
+HTML: page structure, forms, buttons, dialogs, and script/style references. Learn semantic HTML, forms, accessibility labels, and loading JavaScript and CSS.
+
+CSS: website and app presentation. Learn selectors, layout with Flexbox and Grid, responsive design, typography, and CSS variables.
+
+Node.js: JavaScript runtime for the backend. Learn npm, package.json, environment variables, modules, and starting a server.
+
+Express.js: HTTP server and API routing. Learn middleware, route handlers, request/response, status codes, JSON parsing, and error handling.
+
+MongoDB: document database used to persist users, jam sessions, reviews, conversations, and messages. Learn collections, documents, queries, indexes, and database access control.
+
+Mongoose: Node.js library that defines MongoDB schemas/models and performs database queries. Learn schema validation, references, indexes, populate, and async queries.
+
+Capacitor: wraps the web frontend in a native Android application. The Android project also includes Java and Gradle build files generated/managed as part of the Android shell; learn Android Studio and Gradle basics when building or signing the phone app.
+
+Git and GitHub: version control and source hosting. Learn commits, branches, .gitignore, pushing, and how a hosting service can deploy from a repository. GitHub stores code; it does not run the server by itself.
+
+2. PROJECT FOLDERS: WHERE TO LOOK
+---------------------------------
+backend/server.js — starts Express, connects MongoDB, configures CORS and JSON parsing, serves the website files, mounts API route groups, and exposes /health and /api.
+
+backend/routes/auth.js — guest, phone OTP, email OTP, Google sign-in, profile, and logout endpoints.
+backend/routes/jams.js — nearby jam discovery, jam creation, and RSVP actions.
+backend/routes/reviews.js — retrieve and submit jam reviews.
+backend/routes/chat.js — start/find a conversation and read/send its messages.
+backend/middleware/authMiddleware.js — validates a bearer token and loads the corresponding user.
+backend/models/ — Mongoose schemas for User, JamSession, Review, Conversation, and Message.
+backend/.env.example — names of backend environment settings; copy to backend/.env for local secrets/settings. Do not commit a real .env file.
+backend/README.md — current setup and API notes.
+
+frontend/index.html, frontend/style.css, frontend/app.js — website source files served by the backend. The main page is plain HTML/CSS/JavaScript, not a React application.
+frontend/www/ — separate web assets packaged by Capacitor for the installed phone app. Its app.js needs an absolute public API address when the app runs on a phone.
+frontend/capacitor.config.json — Capacitor app identity and the web folder used for the native app build.
+frontend/android/ — Android Studio/Gradle project shell. Most app behavior still comes from the web assets packaged in frontend/www.
+render.yaml — Render deployment blueprint for the Node API and website.
+package.json at project root — convenience commands that delegate to backend scripts.
+
+The repository contains multiple frontend folders from earlier iterations. For this project, the website uses frontend/, while the Capacitor bundle uses frontend/www/. When changing one, check whether the corresponding app copy also needs updating.
+
+3. HOW A REQUEST TRAVELS THROUGH THE APP
+----------------------------------------
+1. A person taps a control in the browser or phone app.
+2. JavaScript validates/collects the form values and sends an HTTP request with fetch().
+3. Express matches the URL and HTTP method to a route in backend/routes/.
+4. Middleware can parse JSON, validate a bearer token, and load a user.
+5. The route validates input, performs business rules, and reads/writes MongoDB through a Mongoose model.
+6. Express returns a JSON response and an HTTP status code.
+7. Frontend JavaScript updates the page from that response.
+
+Learn: HTTP methods (GET/POST/PUT/PATCH/DELETE), URLs, query strings, JSON, headers, status codes, REST API design, fetch(), async/await, Express middleware, validation, and centralized error handling.
+
+The web page uses same-origin /api by default. A phone WebView has its own local origin and therefore needs an absolute API base URL pointing to the deployed service. Both clients should call the same endpoints; the API should not be duplicated for mobile.
+
+4. API GROUPS AND CORE BEHAVIOR
+-------------------------------
+Health and information:
+GET /health — reports whether the API can reach MongoDB.
+GET /api — lists the API name, version, route groups, and health route.
+
+Accounts and authentication (backend/routes/auth.js):
+POST /api/auth/guest — create a guest session.
+GET /api/auth/me — return the signed-in user.
+POST /api/auth/phone/send-otp and /verify-otp — request and verify phone code.
+POST /api/auth/email/send-otp and /verify-otp — request and verify email code.
+POST /api/auth/google — verify Google sign-in credentials.
+PUT /api/auth/profile — update profile.
+POST /api/auth/logout — client-side token logout action.
+
+Successful sign-in returns a JSON Web Token (JWT). The client sends it on protected requests as: Authorization: Bearer <token>. Learn authentication versus authorization, passwordless OTP, JWT expiry/signatures, secure token storage, and why secrets belong in environment variables.
+
+Jams (backend/routes/jams.js):
+GET /api/jams?lat=...&lng=...&radiusKm=... — find active/upcoming sessions near a coordinate. MongoDB geospatial indexes support distance filtering; results also respect the host's discovery radius.
+POST /api/jams/register — host a jam (requires sign-in).
+POST /api/jams/:id/rsvp — join or leave a jam (requires sign-in).
+
+Learn latitude/longitude, GeoJSON, MongoDB 2dsphere indexes, radius queries, date/time handling, request validation, pagination/result caps, and avoiding unsafe user-provided regular expressions.
+
+Reviews (backend/routes/reviews.js):
+GET /api/reviews/:jamSessionId — list reviews.
+POST /api/reviews/:jamSessionId — submit a review (requires sign-in).
+Learn ownership rules, rating validation, schema references, and indexes.
+
+Chat (backend/routes/chat.js):
+POST /api/chat/initiate — start or find a conversation for a jam.
+GET /api/chat/:conversationId/messages?limit=... — fetch recent messages.
+POST /api/chat/:conversationId/message — send a message.
+Learn participant authorization, message history, indexes, pagination, abuse/rate limits, and the difference between simple request-based messaging and real-time WebSockets. Current chat endpoints are request/response APIs; WebSocket live updates would be a later enhancement.
+
+5. EXTERNAL SERVICES AND WEB APIs
+---------------------------------
+MongoDB — required data store. For local work, use a local MongoDB server or a hosted MongoDB Atlas database. For a public website, the server needs a database reachable from the hosting provider; a database running only on your laptop is not enough.
+
+Render — optional Node hosting provider configured in render.yaml. Needed only to keep the API publicly reachable; not required for local development. The current free tier may sleep and has resource/provider limits, so learn current service limits before relying on it for a public launch.
+
+Google Identity / OAuth — optional sign-in. Backend validates Google credentials using google-auth-library and Google identity endpoints. Learn OAuth 2.0 / OpenID Connect, client IDs, allowed origins, and token verification. A Google client ID is public configuration; a client secret or service credential must never be put in browser code.
+
+Fast2SMS — optional SMS delivery in backend/routes/auth.js. Without SMS_API_KEY, production phone OTP cannot be delivered. Learn SMS provider APIs, API keys, delivery errors, OTP expiration, resend limits, and abuse protection.
+
+Resend — optional HTTPS email delivery for OTPs, configured with RESEND_API_KEY and EMAIL_FROM. Nodemailer/SMTP is also supported for local or compatible mail hosts. Learn SMTP basics, HTTPS APIs, sender-domain verification, email deliverability, and provider limits.
+
+OpenStreetMap tiles — the frontend uses Leaflet with the public OpenStreetMap tile service to show maps. Learn Leaflet layers/markers, map attribution, caching, and tile-use policy. Public tiles are not an unlimited production CDN.
+
+Nominatim — OpenStreetMap-based geocoding used by the frontend for address search and reverse lookup. Learn geocoding, coordinate privacy, request throttling, attribution, and the public Nominatim usage policy. A production app with meaningful traffic should consider a suitable geocoding provider or self-hosted service.
+
+Google Fonts — Inter and Syne fonts are loaded by the website pages. They are visual assets, not part of the core API.
+
+Unsplash — sample/profile imagery referenced by the website. These images are not required for the backend.
+
+WhatsApp link — the frontend can form a wa.me contact link from a phone number. This opens WhatsApp externally; it is not an in-app chat integration.
+
+6. ENVIRONMENT SETTINGS TO UNDERSTAND
+-------------------------------------
+PORT — hosting platform-provided port; local default is 5001.
+MONGO_URI — MongoDB connection string.
+JWT_SECRET — signing secret for session tokens. Use a long random value on the host; never commit it.
+NODE_ENV — development/production behavior.
+ALLOWED_ORIGINS — optional comma-separated list of browser origins when the website is hosted separately from the API.
+GOOGLE_CLIENT_ID — optional Google sign-in configuration.
+SMS_API_KEY — optional Fast2SMS credential.
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE — optional SMTP email settings.
+RESEND_API_KEY, EMAIL_FROM — optional Resend email settings.
+
+Use backend/.env.example as the authoritative list in the current code. Put production values in the hosting provider's environment dashboard, not in source files or public frontend JavaScript.
+
+7. LOCAL DEVELOPMENT AND PUBLIC DEPLOYMENT
+------------------------------------------
+Local flow:
+- Install Node.js LTS and npm.
+- Install dependencies with npm install --prefix backend.
+- Configure backend/.env using backend/.env.example and a reachable MongoDB URI.
+- Run npm run dev from the project root.
+- Open the local site at http://localhost:5001; inspect /health and /api.
+
+Public flow:
+- Push code to GitHub.
+- Connect the repository to Render and apply render.yaml.
+- Configure MONGO_URI and any optional provider values in Render settings.
+- Confirm /health, website root, and API responses on the deployed service.
+- Set the phone app API base to that exact deployed /api address before rebuilding the app.
+
+Learn deployment concepts: build command versus start command, environment variables, health checks, logs, HTTPS, CORS, cold starts, persistent data, database network access, and secret rotation. A successful GitHub push alone does not publish a running API.
+
+8. ANDROID APP BUILD CONCEPTS
+-----------------------------
+The phone app uses Capacitor with web assets in frontend/www and an Android project in frontend/android. Learn:
+- Capacitor config and webDir.
+- Copying/syncing updated web assets into the native project.
+- Opening/building the Android project in Android Studio.
+- Gradle build variants, app signing, package/application ID, permissions, and release APK/AAB.
+- CORS and HTTPS when a native WebView calls a remote API.
+- Location permission prompts and handling denied/approximate location.
+
+The native app and website can have different templates/designs while sharing user flows, data rules, and backend endpoints. A downloadable/installable Android package is a later build and distribution step; it is not produced by pushing to GitHub.
+
+9. TESTING AND DEBUGGING TO LEARN
+---------------------------------
+Frontend: browser developer tools, Network panel, Console, form validation, loading/error/empty states, location permission handling.
+API: Postman, Insomnia, or curl for endpoint requests, JSON bodies, authorization headers, status codes, and error responses.
+Backend automated tests: Node test runner or Jest/Vitest, Supertest for HTTP routes, and a test database. Cover guest/sign-in flows, invalid inputs, nearby radius boundaries, host radius, RSVP ownership, reviews, conversation participants, and message limits.
+Database: seed/test data, indexes, MongoDB logs, and keeping test data separate from real user data.
+Deployment: hosting logs, /health, provider configuration, CORS errors, database reachability, and verifying cold-start behavior.
+
+The current frontend npm package does not define an actual test suite. The end-to-end check of finished frontend controls against the hosted API is a planned final step, not a check completed by this guide.
+
+10. SECURITY AND RELIABILITY TOPICS
+-----------------------------------
+- Validate and normalize every request field on the server; never trust browser-side checks alone.
+- Check that a signed-in user is allowed to access each jam, conversation, message, profile, or review.
+- Keep secrets out of Git, logs, browser bundles, and screenshots; use .env locally and host environment settings online.
+- Rate-limit OTP requests and verification attempts; protect sign-in from enumeration and abuse.
+- Do not log OTP values or sensitive personal/location data in production.
+- Decide how precise a user's location must be and when to reveal it; location can be sensitive.
+- Add request rate limits and spam controls to public endpoints.
+- Use HTTPS for public connections; configure CORS narrowly for known origins.
+- Use shared storage for OTPs and rate limits before running multiple backend instances. Current in-memory OTP state resets on restart and is not shared across instances.
+- Plan privacy policy, account deletion, retention, backups, monitoring, and recovery before real public use.
+
+11. SUGGESTED STUDY ORDER
+-------------------------
+Beginner path:
+1. HTML, CSS, JavaScript fundamentals.
+2. Browser DOM/events, fetch, promises, async/await, JSON, and developer tools.
+3. HTTP and REST APIs; practice requests in Postman/Insomnia.
+4. Node.js, npm, Express routes and middleware.
+5. MongoDB basics, Mongoose models, validation, and indexes.
+6. Authentication, JWT, OAuth/OIDC, OTP security, and authorization.
+7. Geospatial data and MongoDB 2dsphere queries.
+8. Testing HTTP APIs with a test runner and Supertest.
+9. Git/GitHub, environment config, deployment, logs, and health checks.
+10. Capacitor, Android Studio, Gradle, app signing, and release builds.
+11. Maps/geocoding, location privacy, rate limits, and provider terms.
+
+Useful search phrases:
+- "JavaScript async await fetch API beginner"
+- "Express.js REST API middleware error handling"
+- "MongoDB Mongoose schema index tutorial"
+- "MongoDB geospatial 2dsphere $near query"
+- "JWT bearer authentication authorization Node Express"
+- "OAuth 2.0 OpenID Connect Google sign in web app"
+- "OTP rate limiting secure verification flow"
+- "Capacitor Android build webDir Android Studio"
+- "Supertest Express API integration testing"
+- "Render Node deployment environment variables health check"
+- "Leaflet OpenStreetMap tile usage attribution"
+- "Nominatim public usage policy geocoding"
+
+12. QUICK PROJECT EXERCISES
+---------------------------
+1. Trace one button in frontend/app.js to its fetch call, Express route, Mongoose model, and response handling.
+2. Use Postman to call GET /api and GET /health; explain what each response means.
+3. Create a jam using a test account, search by coordinates, and test quick 5/10/25 km choices, custom minimum, global “Any distance”, and map markers outside the selected list distance.
+4. Make a protected request without a token and then with a valid token; compare the result.
+5. Draw the sign-in flow from OTP request to verification to JWT use.
+6. Change website API configuration in a local branch and separately identify where the phone bundle API base is set.
+7. Write tests for invalid jam coordinates, unauthorized RSVP, and a user reading another conversation's messages.
+8. Deploy only after you understand where database credentials and provider keys are configured.
+
+END OF GUIDE
+
+13. CURRENT DISTANCE AND MAP FLOW
+---------------------------------
+- The Distance filter stays collapsed until opened. It shows quick picks at 5, 10, and 25 km, plus a tappable Custom section.
+- Custom opens the slider, which adjusts from 1 km to “Any distance.” The slider is logarithmic so small distances remain controllable while still spanning global search.
+- “Any distance” means a global search, implemented with a 20,100 km geospatial search bound. Results are capped at 100 sessions per response for predictable performance; host discovery visibility still applies.
+- The list contains sessions inside the selected distance. The map stays visible outside the filter menu, draws the selected radius, and shows farther discoverable sessions as separate tappable markers.
+- A map badge repeats the active radius so the circle and selected distance are easy to relate. Selecting a farther marker can expand the search distance to include it in the list.
+- The website source and Capacitor phone bundle should stay in sync: frontend/index.html, frontend/app.js, frontend/style.css and frontend/www equivalents.
+- The website showcase can run with `frontend/index.html?demo=1`; it uses fictional, in-browser jam fixtures and simulates RSVP/contact/hosting without changing MongoDB or sending messages.
+
+Feature flow:
+  Quick distance or Custom slider
+       -> selected distance label + map circle
+       -> GET /api/jams with radiusKm and mapRadiusKm
+       -> MongoDB 2dsphere query with meter conversion
+       -> list for selected distance + map markers for wider discovery
+
+14. ADDITIONAL STUDY CHECKLIST FOR THE MAP FILTER
+-------------------------------------------------
+1. HTML details/summary controls, range inputs, output elements, and keyboard access.
+2. Logarithmic slider scales and converting slider position to kilometer values.
+3. GeoJSON Point coordinates ([longitude, latitude]) and MongoDB 2dsphere indexes.
+4. `$geoNear`, meter units, host visibility checks, and bounded/paginated API responses.
+5. Leaflet circles, markers, marker popups, map accessibility, and location privacy.
+6. API contract tests for lower/upper limits, radius boundary behavior, and outside-radius map markers.
+7. Responsive layout checks for the collapsed filter, Custom section, map badge, and phone app bundle.
+
+Official references:
+- MongoDB geospatial queries: https://www.mongodb.com/docs/manual/geospatial-queries/
+- MongoDB 2dsphere indexes: https://www.mongodb.com/docs/manual/core/indexes/index-types/geospatial/2dsphere/
+- Leaflet map reference: https://leafletjs.com/reference.html
+- HTML range input: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range
+
+END OF UPDATED GUIDE
