@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>JamPulse — Frequency Radar (Direction 4: Swiss Grid Terminal)</title>
+  <meta name="description" content="Direction 4: Swiss Grid Terminal / Synthesizer Telemetry for JamPulse. Find your people. Find your sound.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       THE FREQUENCY RADAR · SWISS GRID TERMINAL
+       Tech: Canvas 360 Sonar Sweep, Rotary Radius Dial, Cassette Rack UI
+       Palette: Swiss Stark White #ffffff, Pitch Black #0c0d10, Signal Amber #ff6b00
+       ══════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg: #f2f3f5;
+      --bg-panel: #ffffff;
+      --ink: #0c0d10;
+      --ink-dim: #5c6270;
+      --signal-orange: #ff5500;
+      --signal-green: #00d166;
+      --line-crisp: #d5d9e0;
+      --border-terminal: 1.5px solid #0c0d10;
+      --font-display: 'Inter', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-display);
+      line-height: 1.45;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Terminal Telemetry Strip */
+    .telemetry-topbar {
+      background: var(--ink); color: #fff; padding: 6px clamp(16px, 4vw, 40px);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em;
+    }
+    .gps-lock-tag { color: var(--signal-green); display: flex; align-items: center; gap: 6px; }
+    .gps-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--signal-green); }
+
+    /* Header Nav */
+    header.swiss-header {
+      padding: 16px clamp(16px, 4vw, 40px);
+      display: flex; justify-content: space-between; align-items: center;
+      background: #ffffff; border-bottom: 2px solid var(--ink);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .swiss-brand {
+      display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
+    }
+    .swiss-cross-mark {
+      background: var(--ink); color: #fff; font-family: var(--font-mono);
+      font-weight: 700; width: 32px; height: 32px; display: grid; place-items: center;
+      font-size: 16px;
+    }
+    .swiss-title {
+      font-family: var(--font-display); font-size: 24px; font-weight: 900;
+      letter-spacing: -1px; text-transform: uppercase;
+    }
+    .swiss-title span { color: var(--signal-orange); }
+
+    .swiss-btn {
+      background: #fff; color: var(--ink); border: var(--border-terminal);
+      padding: 9px 18px; font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      cursor: pointer; text-transform: uppercase; transition: all 0.15s ease;
+    }
+    .swiss-btn:hover { background: var(--ink); color: #fff; }
+    .swiss-btn-invert { background: var(--ink); color: #fff; }
+    .swiss-btn-invert:hover { background: var(--signal-orange); border-color: var(--signal-orange); }
+
+    /* Main Container */
+    main.swiss-shell {
+      max-width: 1400px; margin: 0 auto; padding: 34px clamp(16px, 4vw, 40px) 80px;
+    }
+
+    /* Hero */
+    section.hero-terminal {
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; align-items: center;
+      border: 2px solid var(--ink); background: #ffffff; padding: 40px clamp(20px, 4vw, 50px);
+      margin-bottom: 30px;
+    }
+    .terminal-badge {
+      display: inline-block; background: var(--ink); color: #fff; padding: 4px 10px;
+      font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .hero-h1-swiss {
+      font-family: var(--font-display); font-size: clamp(38px, 6vw, 76px);
+      font-weight: 900; line-height: 0.95; letter-spacing: -0.04em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero-h1-swiss span { color: var(--signal-orange); }
+    .hero-desc-swiss {
+      font-size: 16px; color: var(--ink-dim); max-width: 520px; line-height: 1.6; margin-bottom: 28px;
+    }
+    .btn-terminal-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Telemetry HUD Module in Hero */
+    .hero-hud-module {
+      border: 2px solid var(--ink); background: #fbfbfc; padding: 24px;
+      font-family: var(--font-mono);
+    }
+    .hud-title {
+      font-size: 12px; font-weight: 700; border-bottom: 1.5px solid var(--ink);
+      padding-bottom: 8px; margin-bottom: 16px; display: flex; justify-content: space-between;
+    }
+    .hud-telemetry-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 12px; margin-bottom: 16px;
+    }
+    .hud-readout { background: #fff; border: 1px solid var(--line-crisp); padding: 10px; }
+    .hud-readout span { display: block; color: var(--ink-dim); font-size: 10px; }
+    .hud-readout strong { font-size: 18px; color: var(--signal-orange); font-weight: 700; }
+
+    /* Discovery Section */
+    section.swiss-discovery { margin-top: 30px; }
+    .terminal-controls-box {
+      border: 2px solid var(--ink); background: #ffffff; padding: 20px;
+      margin-bottom: 24px; display: grid; grid-template-columns: 1fr auto auto; gap: 20px; align-items: center;
+    }
+    .ctrl-label {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase;
+      margin-bottom: 8px; display: block;
+    }
+    .stepper-btn-group { display: flex; gap: 6px; }
+    .btn-step {
+      background: #fff; border: 1.5px solid var(--ink); padding: 8px 14px;
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .btn-step.active { background: var(--ink); color: #fff; }
+
+    .swiss-select {
+      background: #fff; border: 1.5px solid var(--ink); padding: 10px 14px;
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+
+    /* Grid Layout */
+    .swiss-dual-matrix {
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px; align-items: start;
+    }
+
+    /* Cassette Cards Stack */
+    .cassette-stack { display: grid; gap: 18px; }
+    .cassette-card {
+      background: #ffffff; border: 2px solid var(--ink); padding: 18px;
+      display: grid; grid-template-columns: 100px 1fr; gap: 18px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cassette-card:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 6px 6px 0px var(--ink);
+    }
+    .cassette-left-tape {
+      background: #f0f2f5; border: 1.5px solid var(--ink); padding: 10px 8px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      font-family: var(--font-mono); text-align: center; font-size: 10px;
+    }
+    .tape-spool-visual {
+      display: flex; justify-content: space-around; margin: 10px 0;
+    }
+    .spool-circle { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); }
+    .cassette-body { display: flex; flex-direction: column; justify-content: space-between; }
+    .cassette-meta-row {
+      display: flex; justify-content: space-between; font-family: var(--font-mono);
+      font-size: 11px; font-weight: 700; color: var(--signal-orange); margin-bottom: 4px;
+    }
+    .cassette-title {
+      font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .cassette-venue-info { font-size: 13px; color: var(--ink-dim); font-family: var(--font-mono); margin-bottom: 10px; }
+    .cassette-desc { font-size: 13px; color: #3b414f; line-height: 1.5; margin-bottom: 14px; }
+    .cassette-patch-list { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .patch-badge {
+      background: #f0f2f5; border: 1px solid var(--ink); padding: 3px 8px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    }
+
+    /* Radar Sonar Canvas Map */
+    .radar-sonar-terminal {
+      border: 2px solid var(--ink); background: #ffffff; position: sticky; top: 90px;
+    }
+    .sonar-header {
+      background: var(--ink); color: #fff; padding: 10px 14px;
+      font-family: var(--font-mono); font-size: 11px; display: flex; justify-content: space-between;
+    }
+    .sonar-canvas-box { position: relative; height: 380px; background: #0c0e14; overflow: hidden; }
+    #sonarCanvas { width: 100%; height: 100%; display: block; }
+    .sonar-footer {
+      padding: 10px 14px; border-top: 2px solid var(--ink);
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700; background: #fff;
+    }
+
+    /* Stats strip */
+    .telemetry-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 40px 0;
+    }
+    .tele-stat-card {
+      border: 2px solid var(--ink); background: #fff; padding: 18px; font-family: var(--font-mono);
+    }
+    .tele-stat-card span { font-size: 10px; color: var(--ink-dim); display: block; }
+    .tele-stat-card strong { font-size: 26px; color: var(--ink); font-weight: 700; }
+
+    /* Footer */
+    footer.swiss-footer {
+      border-top: 2px solid var(--ink); margin-top: 60px; padding-top: 20px;
+      display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px;
+    }
+
+    @media (max-width: 900px) {
+      section.hero-terminal { grid-template-columns: 1fr; }
+      .swiss-dual-matrix { grid-template-columns: 1fr; }
+      .terminal-controls-box { grid-template-columns: 1fr; }
+      .telemetry-stats { grid-template-columns: 1fr 1fr; }
+      .radar-sonar-terminal { position: relative; top: auto; order: -1; margin-bottom: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="telemetry-topbar">
+    <div class="gps-lock-tag"><span class="gps-dot"></span>GPS FREQUENCY RADAR · DELHI NCR VECTOR 28.5494 N</div>
+    <div>ACTIVE TELEMETRY: 48 KHZ / 24-BIT</div>
+  </div>
+
+  <header class="swiss-header">
+    <a href="#" class="swiss-brand">
+      <div class="swiss-cross-mark">✚</div>
+      <div class="swiss-title">Jam<span>Pulse</span></div>
+    </a>
+    <div style="display:flex; gap:10px;">
+      <button class="swiss-btn" onclick="alert('GPS locked to Delhi NCR')">GRID: DELHI</button>
+      <button class="swiss-btn swiss-btn-invert" onclick="alert('Host terminal flow')">✚ HOST A JAM</button>
+    </div>
+  </header>
+
+  <main class="swiss-shell">
+    <section class="hero-terminal">
+      <div>
+        <div class="terminal-badge">SYS.SPEC // SYNTHESIS &amp; JAMMING</div>
+        <h1 class="hero-h1-swiss">
+          Find your people.<br>
+          <span>Find your sound.</span>
+        </h1>
+        <p class="hero-desc-swiss">
+          Modular synthesis laboratories, tight math-rock rhythms, and jazz brass sections across Delhi NCR. Calibrated audio telemetry with instant geographic distance vectors.
+        </p>
+        <div class="btn-terminal-row">
+          <button class="swiss-btn swiss-btn-invert" onclick="document.getElementById('swissDiscovery').scrollIntoView({behavior:'smooth'})">
+            EXECUTE DISCOVERY RADAR ➔
+          </button>
+          <button class="swiss-btn" onclick="alert('Host Node')">
+            REGISTER NEW NODE
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-hud-module">
+        <div class="hud-title">
+          <span>ACTIVE AUDIO SPECTRUM</span>
+          <span style="color:var(--signal-orange)">CH-1 MON</span>
+        </div>
+        <div class="hud-telemetry-grid">
+          <div class="hud-readout">
+            <span>NODES ONLINE</span>
+            <strong>18 JAMS</strong>
+          </div>
+          <div class="hud-readout">
+            <span>SAMPLING RATE</span>
+            <strong>96.0 k</strong>
+          </div>
+          <div class="hud-readout">
+            <span>MEAN LATENCY</span>
+            <strong>1.8 ms</strong>
+          </div>
+          <div class="hud-readout">
+            <span>BANDWIDTH</span>
+            <strong>120 BPM</strong>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--ink-dim);">
+          ALL TRANSMISSIONS VERIFIED ACCORDING TO DELHI NCR REGIONAL MATRIX.
+        </div>
+      </div>
+    </section>
+
+    <!-- Telemetry Stats Strip -->
+    <div class="telemetry-stats">
+      <div class="tele-stat-card">
+        <span>SECTOR ENROLLMENT</span>
+        <strong>640 NODES</strong>
+      </div>
+      <div class="tele-stat-card">
+        <span>SEARCH RESOLUTION</span>
+        <strong>1.0 KM</strong>
+      </div>
+      <div class="tele-stat-card">
+        <span>AVERAGE RSVP MATCH</span>
+        <strong>14 MIN</strong>
+      </div>
+      <div class="tele-stat-card">
+        <span>SIGNAL ATTENUATION</span>
+        <strong>0.0 dB</strong>
+      </div>
+    </div>
+
+    <!-- Discovery -->
+    <section class="swiss-discovery" id="swissDiscovery">
+      <div class="terminal-controls-box">
+        <div>
+          <span class="ctrl-label">SEARCH RADIUS STEPPER:</span>
+          <div class="stepper-btn-group" id="swissRadiusStepper">
+            <button class="btn-step" data-rad="5">5 KM</button>
+            <button class="btn-step" data-rad="10">10 KM</button>
+            <button class="btn-step active" data-rad="25">25 KM</button>
+            <button class="btn-step" data-rad="999">ANY DIST</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="ctrl-label">AUDIO PROTOCOL:</span>
+          <select class="swiss-select" id="swissGenreSelect">
+            <option value="All">ALL PROTOCOLS</option>
+            <option value="Electronic">MODULAR &amp; SYNTH</option>
+            <option value="Math-Rock">MATH-ROCK &amp; DRUMS</option>
+            <option value="Jazz">ACID JAZZ &amp; BRASS</option>
+            <option value="Lo-Fi">LO-FI &amp; BEATS</option>
+          </select>
+        </div>
+
+        <div>
+          <span class="ctrl-label">VECTOR SORT:</span>
+          <select class="swiss-select" id="swissSortSelect">
+            <option value="nearest">PROXIMITY (ASC)</option>
+            <option value="time">TIMESTAMP (ASC)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Matrix: Cassette Cards + Sonar Canvas -->
+      <div class="swiss-dual-matrix">
+        <div class="cassette-stack" id="swissCassetteContainer"></div>
+
+        <div class="radar-sonar-terminal">
+          <div class="sonar-header">
+            <span>SONAR RADAR 360°</span>
+            <span style="color:var(--signal-green)">FREQ: ACTIVE</span>
+          </div>
+          <div class="sonar-canvas-box">
+            <canvas id="sonarCanvas"></canvas>
+          </div>
+          <div class="sonar-footer" id="sonarStatusText">
+            TARGET TRACKING: 5 ACTIVE FREQUENCIES IN DELHI
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="swiss-footer">
+      <div>JamPulse — Direction 4: Frequency Radar (Swiss Grid Terminal)</div>
+      <div>DELHI NCR SYNTHESIZER TELEMETRY · 2026</div>
+    </footer>
+  </main>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const SWISS_DATA = [
+        {
+          id: 'sw-1',
+          title: 'Kailash Colony Modular Synth & Ambient Lab',
+          protocol: 'Electronic',
+          venue: 'Sector 4 Studio, Greater Kailash 1',
+          distKm: 4.6,
+          bpm: '98 BPM',
+          key: 'D MINOR',
+          desc: 'Eurorack skiffs, analogue filter patching, and ambient generative drone exploration. Master MIDI clock shared.',
+          patches: ['CV Gate Clock', 'Analogue Synth', 'Sampler / Drum Box'],
+          x: 0.52, y: 0.54
+        },
+        {
+          id: 'sw-2',
+          title: 'Noida Sector 62 Math-Rock & Drum Odyssey',
+          protocol: 'Math-Rock',
+          venue: 'Studio Matrix, Sector 62 Noida',
+          distKm: 14.8,
+          bpm: '142 BPM',
+          key: '7/8 TIME',
+          desc: 'Complex time signatures, clean tapping guitar counterpoint, and technical polyrhythmic drumming.',
+          patches: ['Poly Drummer', 'Tapping Guitar', 'Fretless 6-String'],
+          x: 0.78, y: 0.46
+        },
+        {
+          id: 'sw-3',
+          title: 'Saket Underpass Sub-Bass & Beatbox Cipher',
+          protocol: 'Lo-Fi',
+          venue: 'Acoustic Sound Vault, Saket',
+          distKm: 6.2,
+          bpm: '84 BPM',
+          key: 'F# MINOR',
+          desc: 'SP-404 vinyl chop beats, live bass guitar lines, and organic vocal percussion cipher.',
+          patches: ['SP-404 Sampler', 'Bass Synth', 'Vocal Beatbox'],
+          x: 0.44, y: 0.62
+        },
+        {
+          id: 'sw-4',
+          title: 'Gurugram Phase 2 Lo-Fi Beat-Makers Guild',
+          protocol: 'Lo-Fi',
+          venue: 'The Sound Loft, DLF Cyber City',
+          distKm: 19.4,
+          bpm: '78 BPM',
+          key: 'C MAJOR 7',
+          desc: 'Warm cassette tape saturation, Rhodes electric piano chords, and lazy groove drumming.',
+          patches: ['Fender Rhodes', 'Electric Bass', 'Vintage Mic'],
+          x: 0.22, y: 0.72
+        },
+        {
+          id: 'sw-5',
+          title: 'Vasant Kunj Acid Jazz & Brass Assembly',
+          protocol: 'Jazz',
+          venue: 'Basement 3, Sector C Vasant Kunj',
+          distKm: 7.9,
+          bpm: '118 BPM',
+          key: 'E FLAT',
+          desc: 'TB-303 bass acid loops combined with live trumpet and saxophone improvisation over funk grooves.',
+          patches: ['Trumpet', 'Tenor Sax', 'TB-303 Bassline'],
+          x: 0.36, y: 0.58
+        }
+      ];
+
+      let activeRadius = 25;
+      let activeGenre = 'All';
+
+      const container = document.getElementById('swissCassetteContainer');
+      const stepperBtns = document.querySelectorAll('#swissRadiusStepper .btn-step');
+      const genreSelect = document.getElementById('swissGenreSelect');
+
+      function renderSwiss() {
+        const filtered = SWISS_DATA.filter(item => {
+          const rMatch = activeRadius >= 999 || item.distKm <= activeRadius;
+          const gMatch = activeGenre === 'All' || item.protocol === activeGenre;
+          return rMatch && gMatch;
+        });
+
+        container.innerHTML = '';
+        if (filtered.length === 0) {
+          container.innerHTML = `
+            <div style="background:#fff; border:2px solid var(--ink); padding:30px; font-family:var(--font-mono); text-align:center;">
+              <strong>NO ACTIVE TELEMETRY NODES IN RANGE</strong>
+              <p style="font-size:12px; margin-top:6px; color:var(--ink-dim);">EXPAND SEARCH VECTOR RADIUS OR SWITCH PROTOCOL.</p>
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach(jam => {
+          const card = document.createElement('article');
+          card.className = 'cassette-card';
+          card.innerHTML = `
+            <div class="cassette-left-tape">
+              <span>TAPE C-60</span>
+              <div class="tape-spool-visual">
+                <div class="spool-circle"></div>
+                <div class="spool-circle"></div>
+              </div>
+              <strong>${jam.bpm}</strong>
+            </div>
+            <div class="cassette-body">
+              <div>
+                <div class="cassette-meta-row">
+                  <span>${jam.protocol} PROTOCOL</span>
+                  <span>VECTOR: ${jam.distKm} KM</span>
+                </div>
+                <h3 class="cassette-title">${jam.title}</h3>
+                <div class="cassette-venue-info">LOC: ${jam.venue} · KEY: ${jam.key}</div>
+                <p class="cassette-desc">${jam.desc}</p>
+              </div>
+              <div>
+                <div class="cassette-patch-list">
+                  ${jam.patches.map(p => `<span class="patch-badge">+ ${p}</span>`).join('')}
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button class="swiss-btn" onclick="alert('Querying host for ${jam.title}')">TELEMETRY QUERY</button>
+                  <button class="swiss-btn swiss-btn-invert" onclick="alert('Node locked for ${jam.title}')">RSVP NODE ➔</button>
+                </div>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      stepperBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          stepperBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeRadius = Number(btn.getAttribute('data-rad'));
+          renderSwiss();
+        });
+      });
+
+      genreSelect.addEventListener('change', () => {
+        activeGenre = genreSelect.value;
+        renderSwiss();
+      });
+
+      // Canvas Sonar Radar
+      const canvas = document.getElementById('sonarCanvas');
+      const ctx = canvas.getContext('2d');
+      function resizeSonar() {
+        canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+        canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      }
+      window.addEventListener('resize', resizeSonar);
+      resizeSonar();
+
+      let beamAngle = 0;
+      function drawSonar() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        ctx.clearRect(0, 0, w, h);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(0, 209, 102, 0.15)';
+        ctx.lineWidth = 1;
+        [w * 0.18, w * 0.32, w * 0.44].forEach(r => {
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        });
+
+        // Crosshairs
+        ctx.beginPath();
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+        ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+        ctx.stroke();
+
+        // 360 Sweep Beam
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(beamAngle);
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.44);
+        grad.addColorStop(0, 'rgba(0, 209, 102, 0.35)');
+        grad.addColorStop(1, 'rgba(0, 209, 102, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, w * 0.44, -0.4, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Delhi Jam Pins
+        SWISS_DATA.forEach(node => {
+          const px = node.x * w;
+          const py = node.y * h;
+          const inRange = node.distKm <= activeRadius;
+
+          ctx.fillStyle = inRange ? '#00d166' : '#455062';
+          ctx.beginPath();
+          ctx.arc(px, py, inRange ? 5 : 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (inRange) {
+            ctx.fillStyle = '#ff5500';
+            ctx.font = '9px "Space Mono", monospace';
+            ctx.fillText(node.distKm + 'km', px + 8, py + 3);
+          }
+        });
+
+        beamAngle += 0.025;
+        requestAnimationFrame(drawSonar);
+      }
+      requestAnimationFrame(drawSonar);
+
+      renderSwiss();
+    })();
+  </script>
+</body>
+</html>

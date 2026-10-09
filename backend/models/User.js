@@ -11,6 +11,8 @@ const UserSchema = new mongoose.Schema({
     index: { unique: true, sparse: true }, 
     trim: true 
   },
+  phoneVerified: { type: Boolean, default: false },
+  lastPrivateCallAt: { type: Date, default: null },
   email: { 
     type: String, 
     index: { unique: true, sparse: true }, 

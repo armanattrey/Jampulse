@@ -4,29 +4,48 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="JamPulse — Discover and host live music circles near you." />
+  <meta name="theme-color" content="#f7f8f5" />
   <title>JamPulse — Live Music Circles Near You</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-  
+
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- Cache buster added below so new styles take effect immediately -->
-  <link rel="stylesheet" href="style.css?v=2.4" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css?v=4.0" />
+  <link rel="stylesheet" href="assets/jam-reel.css?v=4.0" />
+
 </head>
 <body>
+  <a class="skip-link" href="#feedSection">Skip to jam sessions</a>
+  <div class="product-shell">
+    <aside class="product-sidebar" aria-label="Main navigation">
+      <a class="product-brand" href="/" aria-label="JamPulse discover">
+        <span class="product-brand-mark" aria-hidden="true">✳</span>
+        <span>Jam<strong>Pulse</strong><small>FIND YOUR FREQUENCY</small></span>
+      </a>
+      <p class="sidebar-section-label">Your space</p>
+      <nav class="product-nav" aria-label="JamPulse">
+        <button class="product-nav-link is-active" type="button" data-nav-action="discover"><span aria-hidden="true">⌕</span>Discover</button>
+        <button class="product-nav-link" type="button" data-nav-action="my-jams"><span aria-hidden="true">♫</span>My Jams</button>
+        <button class="product-nav-link" type="button" data-nav-action="messages"><span aria-hidden="true">✉</span>Messages</button>
+        <button class="product-nav-link" type="button" data-nav-action="saved"><span aria-hidden="true">♡</span>Saved</button>
+      </nav>
+      <p class="sidebar-section-label sidebar-host-label">Make it happen</p>
+      <button class="product-nav-link" type="button" data-nav-action="host"><span aria-hidden="true">＋</span>Host a jam</button>
+      <div class="sidebar-note"><span class="sidebar-note-symbol" aria-hidden="true">↗</span><strong>Your people are out there.</strong><span>One good session could be the start of something.</span></div>
+    </aside>
 
+    <div class="product-main">
   <header class="app-header">
     <div class="header-left">
       <div class="brand">
-        <span class="brand-icon" aria-hidden="true">🎸</span>
+
         <span class="brand-text">Jam<strong>Pulse</strong></span>
-        <span class="demo-mode-badge hidden" id="demoModeBadge" role="status">DEMO · SAMPLE JAMS</span>
+
       </div>
 
       <button class="location-pill" id="locationSelectorBtn" title="Change Location" aria-label="Change current location">
-        <span class="loc-icon" aria-hidden="true">📍</span>
+        <span class="loc-icon" aria-hidden="true">⌖</span>
         <div class="loc-text">
           <span class="loc-label">Browsing Near</span>
           <span class="loc-city" id="navCityText">Detecting...</span>
@@ -36,14 +55,14 @@
     </div>
 
     <div class="search-container">
-      <span class="search-glyph" aria-hidden="true">🔍</span>
-      <input type="text" id="mainSearchInput" placeholder="Search by band, venue, instrument, or genre..." aria-label="Search for jam sessions" />
+      <span class="search-glyph" aria-hidden="true">⌕</span>
+      <input type="text" id="mainSearchInput" placeholder="Search sounds, places, people…" aria-label="Search for jam sessions" />
       <button class="search-clear-btn hidden" id="searchClearBtn" aria-label="Clear search">&times;</button>
     </div>
 
     <div class="header-right">
       <button class="btn btn-brand" id="openHostBtn">+ Host Jam</button>
-      
+
       <div id="unauthControls">
         <button class="btn btn-subtle" id="openLoginModalBtn">Sign In</button>
       </div>
@@ -58,7 +77,7 @@
           <div class="dropdown-header">
             <span class="dropdown-header-title">My Account</span>
           </div>
-          
+
           <button class="dropdown-item" onclick="openProfileDrawer()" role="menuitem">
             <span class="item-icon">👤</span> Profile & Artist Card
           </button>
@@ -84,7 +103,7 @@
             <span class="item-icon">🎸</span> Gear & Instruments Locker
           </button>
           <button class="dropdown-item" id="btnPreferences" role="menuitem">
-            <span class="item-icon">⚙️</span> Audio & App Preferences
+            <span class="item-icon">⚙️</span> Notifications & App Preferences
           </button>
           <button class="dropdown-item" id="btnSecurity" role="menuitem">
             <span class="item-icon">🔒</span> Account Security
@@ -95,7 +114,7 @@
           <button class="dropdown-item" id="btnSupport" role="menuitem">
             <span class="item-icon">💬</span> Help & Community Rules
           </button>
-          
+
           <div class="dropdown-divider"></div>
 
           <button class="dropdown-item text-danger-item" onclick="logout()" role="menuitem">
@@ -107,20 +126,43 @@
   </header>
 
   <main class="content-wrapper">
-    <section class="feed-section" id="feedSection">
-      <div class="filter-strip">
-        <div class="filter-group genre-filter">
-          <label for="genreFilterSelect">Genre</label>
-          <select id="genreFilterSelect" aria-label="Filter jams by genre">
-            <option value="All">All jams</option>
-            <option value="Acoustic Unplugged">Acoustic</option>
-            <option value="Electric Jam">Electric</option>
-            <option value="Open Mic">Open mic</option>
-            <option value="Sufi & Classical">Sufi &amp; classical</option>
-            <option value="Chill Electronic">Electronic</option>
-            <option value="Jazz & Blues">Jazz &amp; blues</option>
-          </select>
+    <p class="demo-mode-badge hidden" id="demoModeBadge" role="status">Preview mode · These are sample sessions, not live events.</p>
+    <section class="discovery-welcome" aria-labelledby="discoveryTitle">
+      <div class="discovery-welcome-content">
+        <p class="discovery-eyebrow">Find your local music circle</p>
+        <h1 id="discoveryTitle">Good music.<br>Better<br><span>company.</span></h1>
+        <p class="discovery-subtitle">Meet musicians nearby. Bring your sound.<br>Make something together.</p>
+        <div class="discovery-actions-row">
+          <a class="discovery-explore-cta" href="#feedSection">Explore jams <span aria-hidden="true">↗</span></a>
+          <button class="discovery-host-cta" type="button" data-nav-action="host">Host a jam <span aria-hidden="true">＋</span></button>
         </div>
+      </div>
+      <div class="record-sleeve" role="img" aria-label="A black vinyl record on a lime record sleeve, celebrating music made together">
+        <div class="sleeve-top"><span>JAMPULSE</span><span>SIDE A / TOGETHER</span></div>
+        <div class="vinyl-record"><div class="vinyl-label"><span>LOCAL SOUNDS</span><strong>JamPulse</strong><span>BETTER TOGETHER</span></div></div>
+        <div class="sleeve-bottom"><span>A little less solo.</span><span>A little more soul. ↗</span></div>
+      </div>
+    </section>
+    <div class="community-line"><p>All instruments. All experience levels.</p><span>There’s a place for your sound. <span aria-hidden="true">↘</span></span></div>
+    <div class="discovery-layout">
+    <section class="feed-section" id="feedSection">
+      <div class="results-heading"><div><p class="section-eyebrow">THE LOCAL LINEUP</p><h2>Find your next jam.</h2></div><span class="results-count" id="resultsCount" aria-live="polite">Finding nearby jams…</span></div>
+      <div class="filter-strip">
+        <details class="filter-group genre-filter" id="genreFilterMenu">
+          <summary><span class="filter-menu-label">Genre</span><strong id="genreFilterSummary">All sounds</strong></summary>
+          <div class="genre-filter-panel">
+            <label for="genreFilterSelect">Choose a sound</label>
+            <select id="genreFilterSelect" aria-label="Filter jams by genre">
+              <option value="All">All jams</option>
+              <option value="Acoustic Unplugged">Acoustic</option>
+              <option value="Electric Jam">Electric</option>
+              <option value="Open Mic">Open mic</option>
+              <option value="Sufi & Classical">Sufi &amp; classical</option>
+              <option value="Chill Electronic">Electronic</option>
+              <option value="Jazz & Blues">Jazz &amp; blues</option>
+            </select>
+          </div>
+        </details>
 
         <details class="filter-group distance-filter" id="distanceFilterMenu">
           <summary>
@@ -159,19 +201,21 @@
             <option value="timing">Happening soon</option>
           </select>
         </div>
+        <button class="clear-filter-button" id="clearFilters" type="button">Clear filters</button>
 
         <div class="mobile-view-toggle" aria-label="Choose map or list view">
-          <button class="toggle-btn active" id="btnShowList" type="button" aria-pressed="true">List</button>
+          <button class="toggle-btn active" id="btnShowList" type="button" aria-pressed="true">Jams</button>
           <button class="toggle-btn" id="btnShowMap" type="button" aria-pressed="false">Map</button>
         </div>
 
-        <span class="results-count" id="resultsCount" aria-live="polite">Scanning nearby jams...</span>
       </div>
 
+      <div id="jamReelRoot"></div>
       <div class="jams-grid" id="jamsFeedContainer"></div>
     </section>
 
-    <section class="map-section" id="mapSection">
+    <section class="map-section" id="mapSection" aria-label="Nearby jam sessions on the map">
+      <div class="map-heading"><span>IN YOUR NEIGHBORHOOD</span><h3>A little closer to<br>your people.</h3></div>
       <div id="leafletMap"></div>
       <div class="map-radius-badge" aria-live="polite"><span>Search radius</span><strong id="mapRadiusLabel">25 km</strong></div>
       <div class="map-legend" aria-label="Map marker guide">
@@ -179,9 +223,19 @@
         <div class="map-legend-key"><span class="map-legend-dot beyond-range" aria-hidden="true"></span><span>Outside your selected distance</span></div>
         <p id="mapPinSummary" aria-live="polite">Choose a dot to see jam details.</p>
       </div>
-      <button class="map-recenter-btn" id="mapRecenterBtn" title="Switch to current GPS location" aria-label="Recenter map to current location">🎯</button>
+      <button class="map-recenter-btn" id="mapRecenterBtn" title="Switch to current GPS location" aria-label="Recenter map to current location">⌖</button>
     </section>
+    </div>
   </main>
+    </div>
+  </div>
+  <nav class="product-mobile-nav" aria-label="Main navigation">
+    <button class="is-active" type="button" data-nav-action="discover"><span aria-hidden="true">⌕</span>Discover</button>
+    <button type="button" data-nav-action="my-jams"><span aria-hidden="true">♫</span>My Jams</button>
+    <button type="button" data-nav-action="host"><span aria-hidden="true">＋</span>Host</button>
+    <button type="button" data-nav-action="messages"><span aria-hidden="true">✉</span>Inbox</button>
+    <button type="button" data-nav-action="saved"><span aria-hidden="true">♡</span>Saved</button>
+  </nav>
 
   <!-- Location Selector Modal -->
   <div class="modal-backdrop hidden" id="locationModal" role="dialog" aria-modal="true">
@@ -218,7 +272,7 @@
   <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true">
     <div class="modal-card auth-modal-card">
       <button class="close-modal-btn" onclick="closeModals()" aria-label="Close modal">&times;</button>
-      
+
       <div class="modal-header auth-header-center">
         <div class="auth-icon-badge" aria-hidden="true">🎸</div>
         <h3>Welcome to JamPulse</h3>
@@ -384,6 +438,11 @@
           <textarea id="hostDesc" rows="3" placeholder="Tell people what to expect, who can sing, or what gear is available..."></textarea>
         </div>
 
+        <label class="private-call-optin" for="hostAllowPrivateCalls">
+          <input type="checkbox" id="hostAllowPrivateCalls" />
+          <span><strong>Allow private phone calls</strong><small>Verified attendees can request a temporary shared number. Your personal number stays hidden.</small></span>
+        </label>
+
         <div class="modal-actions">
           <button type="button" class="btn btn-subtle" onclick="closeModals()">Cancel</button>
           <button type="submit" class="btn btn-brand">Publish Jam Session</button>
@@ -445,12 +504,13 @@
       </p>
 
       <div class="contact-options-stack">
-        <a id="whatsappContactLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">
-          💬 Message on WhatsApp
-        </a>
         <button id="inAppContactBtn" class="btn btn-brand" type="button">
           ✉ Send In-App Message
         </button>
+        <button id="privateCallBtn" class="btn btn-outline hidden" type="button">
+          ☎ Request a private call
+        </button>
+        <p id="privateCallStatus" class="private-call-status hidden" role="status"></p>
       </div>
     </div>
   </div>
@@ -476,7 +536,7 @@
   <div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true">
     <div class="modal-card modal-profile-card">
       <button class="close-profile-modal-btn" onclick="closeModals()" aria-label="Close profile">&times;</button>
-      
+
       <div class="profile-hero-banner">
         <div class="banner-gradient-pattern"></div>
         <div class="profile-avatar-super-wrapper">
@@ -619,11 +679,11 @@
     </div>
   </div>
 
-  <button 
-    type="button" 
-    class="btn-fab" 
-    id="floatingHostBtn" 
-    data-tooltip="Host a Jam Session" 
+  <button
+    type="button"
+    class="btn-fab"
+    id="floatingHostBtn"
+    data-tooltip="Host a Jam Session"
     aria-label="Host a Jam Session"
     onclick="document.getElementById('openHostBtn').click()"
   >
@@ -631,6 +691,8 @@
   </button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=2.5"></script>
+  <script src="app.js?v=4.0"></script>
+  <script type="module" src="assets/jam-reel.js?v=4.0"></script>
+
 </body>
 </html>

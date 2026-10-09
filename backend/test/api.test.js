@@ -6,6 +6,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const jamRoutes = require('../routes/jams');
 const authRoutes = require('../routes/auth');
 const reviewRoutes = require('../routes/reviews');
+const callRoutes = require('../routes/calls');
 const JamSession = require('../models/JamSession');
 
 function responseRecorder() {
@@ -30,7 +31,7 @@ test('backend route and validation contracts', async (t) => {
     const res = responseRecorder();
     handler({}, res);
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body.endpoints, ['/api/auth', '/api/jams', '/api/reviews', '/api/chat']);
+    assert.deepEqual(res.body.endpoints, ['/api/auth', '/api/jams', '/api/reviews', '/api/chat', '/api/calls']);
   });
 
   await t.test('health check reflects actual MongoDB state', () => {
@@ -183,5 +184,13 @@ test('backend route and validation contracts', async (t) => {
     await authMiddleware({ headers: {} }, res, () => assert.fail('next should not be called'));
     assert.equal(res.statusCode, 401);
     assert.match(res.body.error, /token missing/i);
+  });
+
+  await t.test('private call endpoint rejects malformed jam IDs', async () => {
+    const handler = getRouteHandler(callRoutes, '/request', 'post');
+    const res = responseRecorder();
+    await handler({ body: { jamSessionId: 'not-an-id' } }, res);
+    assert.equal(res.statusCode, 400);
+    assert.match(res.body.error, /valid jam session/i);
   });
 });

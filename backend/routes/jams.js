@@ -126,7 +126,8 @@ router.post('/register', authMiddleware, async (req, res) => {
       lng,
       startTime,
       endTime,
-      discoveryRadiusKm = 10
+      discoveryRadiusKm = 10,
+      allowPhoneCalls = false
     } = req.body;
 
     const latitude = Number(lat);
@@ -134,11 +135,15 @@ router.post('/register', authMiddleware, async (req, res) => {
     const startsAt = new Date(startTime);
     const endsAt = new Date(endTime);
     const radius = Number(discoveryRadiusKm);
+    const wantsPrivateCalls = allowPhoneCalls === true;
 
     if (!title?.trim() || !hostTeam?.trim() || !locationName?.trim() || lat === undefined || lat === null || lat === '' || lng === undefined || lng === null || lng === '' || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || !Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime())) {
       return res.status(400).json({ error: 'Required event coordinates or info missing.' });
     }
     if (!ALLOWED_RADII.includes(radius)) return res.status(400).json({ error: 'Choose a discovery radius of 5, 10, 25, or 50 km.' });
+    if (wantsPrivateCalls && (!req.user.phone || !req.user.phoneVerified)) {
+      return res.status(403).json({ error: 'Verify your phone number before enabling private calls.' });
+    }
     if (endsAt <= startsAt || startsAt <= new Date()) return res.status(400).json({ error: 'Choose a future start time and an end time after it.' });
 
     const newJam = await JamSession.create({
@@ -152,6 +157,7 @@ router.post('/register', authMiddleware, async (req, res) => {
       locationName: locationName.trim(),
       address: String(address || '').trim(),
       discoveryRadiusKm: radius,
+      allowPhoneCalls: wantsPrivateCalls,
       location: {
         type: 'Point',
         coordinates: [longitude, latitude]

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>JamPulse — The Underground Press (Direction 2: Risograph Punk Zine)</title>
+  <meta name="description" content="Direction 2: Risograph Punk Zine / DIY Screenprint for JamPulse. Find your people. Find your sound.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       THE UNDERGROUND PRESS · RISOGRAPH PUNK ZINE
+       Tech: Halftone Screen Filter, Misregistration Bleed, Kinetic Tape
+       Palette: Riso Newsprint #f5efe1, Riso Fluoro Pink #ff1e6d, Riso Cobalt #0038ff
+       ══════════════════════════════════════════════════════════════════ */
+    :root {
+      --newsprint: #f5efe1;
+      --ink: #141416;
+      --riso-pink: #ff1e6d;
+      --riso-blue: #0038ff;
+      --riso-yellow: #ffe600;
+      --riso-teal: #00c49a;
+      --paper-card: #fffdf7;
+      --border-heavy: 3px solid #141416;
+      --shadow-brutal: 5px 5px 0px #141416;
+      --shadow-brutal-lg: 8px 8px 0px #141416;
+      --font-display: 'Archivo Black', sans-serif;
+      --font-body: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--newsprint);
+      color: var(--ink);
+      font-family: var(--font-body);
+      line-height: 1.45;
+      overflow-x: hidden;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(#141416 0.75px, transparent 0.75px),
+        radial-gradient(#141416 0.75px, var(--newsprint) 0.75px);
+      background-size: 24px 24px;
+      background-position: 0 0, 12px 12px;
+    }
+
+    /* Tape & Paper Texture Overlay */
+    .halftone-overlay {
+      position: fixed; inset: 0; pointer-events: none; z-index: 2; opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    }
+
+    /* Kinetic Marquee Ticker */
+    .zine-marquee {
+      background: var(--ink); color: #fff; padding: 8px 0;
+      overflow: hidden; white-space: nowrap; border-bottom: var(--border-heavy);
+      display: flex; user-select: none;
+    }
+    .marquee-track {
+      display: flex; gap: 30px; animation: ticker-slide 20s linear infinite;
+      font-family: var(--font-mono); font-size: 13px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .marquee-track span { color: var(--riso-yellow); }
+    @keyframes ticker-slide {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Top Nav */
+    header.zine-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px clamp(16px, 4vw, 40px);
+      background: var(--paper-card); border-bottom: var(--border-heavy);
+      position: sticky; top: 0; z-index: 40;
+    }
+    .zine-brand {
+      display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
+    }
+    .zine-badge-icon {
+      background: var(--riso-pink); color: #fff;
+      font-family: var(--font-display); font-size: 22px; width: 44px; height: 44px;
+      display: grid; place-items: center; border: var(--border-heavy);
+      box-shadow: 3px 3px 0 var(--ink); transform: rotate(-3deg);
+    }
+    .zine-title {
+      font-family: var(--font-display); font-size: clamp(24px, 3.2vw, 32px);
+      line-height: 1; letter-spacing: -1px; text-transform: uppercase;
+    }
+    .zine-title span { color: var(--riso-blue); }
+
+    .zine-nav-pills { display: flex; gap: 10px; align-items: center; }
+    .btn-zine-tag {
+      background: var(--newsprint); border: var(--border-heavy); padding: 8px 14px;
+      font-family: var(--font-mono); font-weight: 800; font-size: 12px; cursor: pointer;
+      box-shadow: 3px 3px 0 var(--ink); transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-zine-tag:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+    .btn-zine-primary {
+      background: var(--riso-pink); color: #fff;
+    }
+
+    /* Main Container */
+    main.zine-shell {
+      max-width: 1360px; margin: 0 auto; padding: 30px clamp(16px, 4vw, 40px) 80px;
+    }
+
+    /* Hero Section */
+    section.hero-zine {
+      padding: 40px 0 50px;
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 36px; align-items: center;
+    }
+    .tape-tag {
+      display: inline-block; background: var(--riso-yellow); border: var(--border-heavy);
+      padding: 4px 12px; font-family: var(--font-mono); font-size: 12px; font-weight: 800;
+      text-transform: uppercase; transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--ink);
+      margin-bottom: 20px;
+    }
+    .hero-h1 {
+      font-family: var(--font-display); font-size: clamp(38px, 6vw, 76px);
+      line-height: 0.95; letter-spacing: -0.04em; text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+    .hero-h1 .riso-print-bleed {
+      color: var(--riso-pink);
+      text-shadow: 3px 3px 0px var(--riso-blue);
+      display: inline-block;
+    }
+    .hero-manifesto {
+      font-size: clamp(16px, 1.8vw, 19px); font-weight: 600; line-height: 1.5;
+      max-width: 540px; margin-bottom: 30px;
+    }
+    .hero-action-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-brutal-cta {
+      padding: 14px 28px; font-family: var(--font-display); font-size: 16px;
+      text-transform: uppercase; border: var(--border-heavy); cursor: pointer;
+      box-shadow: var(--shadow-brutal); transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-brutal-cta:hover { transform: translate(-3px, -3px); box-shadow: var(--shadow-brutal-lg); }
+    .btn-brutal-cta:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+    .btn-cta-pink { background: var(--riso-pink); color: #fff; }
+    .btn-cta-white { background: var(--paper-card); color: var(--ink); }
+
+    /* Hero Collage Poster Box */
+    .hero-flyer-box {
+      background: var(--paper-card); border: var(--border-heavy); padding: 24px;
+      box-shadow: var(--shadow-brutal-lg); transform: rotate(1.2deg);
+      position: relative;
+    }
+    .flyer-stamp {
+      position: absolute; top: -14px; right: -14px;
+      background: var(--riso-blue); color: #fff; font-family: var(--font-mono);
+      font-weight: 800; font-size: 11px; padding: 6px 12px; border: var(--border-heavy);
+      transform: rotate(8deg); box-shadow: 3px 3px 0 var(--ink);
+    }
+    .flyer-head {
+      border-bottom: 2px dashed var(--ink); padding-bottom: 12px; margin-bottom: 16px;
+      display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; font-weight: 800;
+    }
+    .flyer-headline {
+      font-family: var(--font-display); font-size: 26px; text-transform: uppercase;
+      line-height: 1.1; margin-bottom: 12px; color: var(--ink);
+    }
+    .flyer-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; font-weight: 700; margin-bottom: 16px; }
+    .flyer-note {
+      background: var(--newsprint); padding: 12px; border: 2px solid var(--ink);
+      font-size: 12px; font-weight: 600; line-height: 1.4;
+    }
+
+    /* Zine Discovery Strip */
+    section.zine-discovery { margin-top: 40px; }
+    .filter-board {
+      background: var(--paper-card); border: var(--border-heavy); padding: 20px;
+      box-shadow: var(--shadow-brutal); margin-bottom: 30px;
+      display: grid; grid-template-columns: 1fr auto auto; gap: 20px; align-items: center;
+    }
+    .filter-label-stamp {
+      font-family: var(--font-mono); font-weight: 800; font-size: 11px; text-transform: uppercase;
+      color: var(--ink); margin-bottom: 8px; display: block;
+    }
+    .radius-stencil-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-stencil {
+      background: var(--newsprint); border: 2px solid var(--ink); padding: 8px 14px;
+      font-family: var(--font-mono); font-weight: 800; font-size: 13px; cursor: pointer;
+      box-shadow: 2px 2px 0 var(--ink); transition: all 0.15s;
+    }
+    .btn-stencil:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+    .btn-stencil.active {
+      background: var(--riso-blue); color: #fff; box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .zine-select-cutout {
+      background: var(--newsprint); border: 2px solid var(--ink); padding: 10px 14px;
+      font-family: var(--font-body); font-weight: 800; font-size: 13px; cursor: pointer;
+      box-shadow: 3px 3px 0 var(--ink); outline: none;
+    }
+
+    /* Discovery Layout */
+    .zine-grid-rig {
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; align-items: start;
+    }
+
+    /* Zine Jam Cards */
+    .jam-zine-cards { display: grid; gap: 24px; }
+    .zine-card {
+      background: var(--paper-card); border: var(--border-heavy); padding: 18px;
+      box-shadow: var(--shadow-brutal); position: relative;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1.2), box-shadow 0.2s;
+    }
+    .zine-card:nth-child(even) { transform: rotate(-0.6deg); }
+    .zine-card:nth-child(odd) { transform: rotate(0.8deg); }
+    .zine-card:hover {
+      transform: translateY(-4px) rotate(0deg) !important;
+      box-shadow: var(--shadow-brutal-lg);
+    }
+
+    .card-stencil-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 12px;
+    }
+    .card-genre-stamp {
+      background: var(--riso-pink); color: #fff; font-family: var(--font-mono);
+      font-size: 10px; font-weight: 800; padding: 4px 10px; border: 2px solid var(--ink);
+      text-transform: uppercase;
+    }
+    .card-dist-pill { font-family: var(--font-mono); font-size: 12px; font-weight: 800; }
+    .zine-card-title {
+      font-family: var(--font-display); font-size: 20px; line-height: 1.1;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .card-venue-row { font-size: 13px; font-weight: 700; color: #444; margin-bottom: 10px; }
+    .card-zine-body { font-size: 13px; line-height: 1.5; font-weight: 500; margin-bottom: 16px; }
+
+    .tag-instruments-tape { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .inst-tape {
+      background: var(--newsprint); border: 2px solid var(--ink); padding: 3px 8px;
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    }
+
+    .card-zine-actions {
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 2px dashed var(--ink); padding-top: 12px;
+    }
+    .btn-zine-save {
+      background: none; border: 2px solid var(--ink); width: 34px; height: 34px;
+      font-size: 16px; cursor: pointer; display: grid; place-items: center;
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+    .btn-zine-save.saved { background: var(--riso-pink); color: #fff; }
+
+    /* Screenprinted Map Frame */
+    .zine-map-frame {
+      background: var(--paper-card); border: var(--border-heavy);
+      box-shadow: var(--shadow-brutal-lg); position: sticky; top: 90px;
+    }
+    .map-frame-header {
+      padding: 12px 16px; border-bottom: var(--border-heavy); background: var(--riso-yellow);
+      display: flex; justify-content: space-between; font-family: var(--font-mono); font-weight: 800; font-size: 12px;
+    }
+    .svg-map-canvas {
+      width: 100%; height: 380px; background: var(--newsprint); display: block;
+    }
+    .map-frame-footer {
+      padding: 12px 16px; border-top: var(--border-heavy); font-size: 12px; font-weight: 700;
+      background: var(--paper-card);
+    }
+
+    /* Zine Testimonials Strip */
+    section.zine-reviews {
+      margin: 80px 0 50px;
+    }
+    .section-h2-zine {
+      font-family: var(--font-display); font-size: clamp(28px, 4vw, 44px);
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .reviews-zine-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .review-zine-block {
+      background: var(--paper-card); border: var(--border-heavy); padding: 20px;
+      box-shadow: var(--shadow-brutal);
+    }
+    .review-zine-block:nth-child(1) { transform: rotate(1deg); }
+    .review-zine-block:nth-child(2) { transform: rotate(-1.2deg); }
+    .review-zine-block:nth-child(3) { transform: rotate(0.8deg); }
+
+    /* Closing Banner */
+    section.closing-zine-banner {
+      background: var(--riso-yellow); border: var(--border-heavy); padding: clamp(30px, 5vw, 60px);
+      box-shadow: var(--shadow-brutal-lg); text-align: center; margin-top: 50px;
+    }
+    .closing-h2 {
+      font-family: var(--font-display); font-size: clamp(30px, 4.5vw, 52px);
+      text-transform: uppercase; line-height: 1; margin-bottom: 16px;
+    }
+
+    /* Footer */
+    footer.zine-footer {
+      border-top: var(--border-heavy); margin-top: 60px; padding: 24px 0 0;
+      display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+      section.hero-zine { grid-template-columns: 1fr; }
+      .zine-grid-rig { grid-template-columns: 1fr; }
+      .filter-board { grid-template-columns: 1fr; }
+      .reviews-zine-grid { grid-template-columns: 1fr; }
+      .zine-map-frame { position: relative; top: auto; order: -1; margin-bottom: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="halftone-overlay"></div>
+
+  <!-- Kinetic Marquee Tape -->
+  <div class="zine-marquee">
+    <div class="marquee-track">
+      <span>★ DELHI NCR LIVE NOISE DISPATCH</span> — NO GATEKEEPING — ROOFTOPS, BASEMENTS & GARAGES — <span>16 OPEN SESSIONS TONIGHT</span> — BRING YOUR WIRES & DRUMSTICKS — <span>★ DELHI NCR LIVE NOISE DISPATCH</span> — NO GATEKEEPING — ROOFTOPS, BASEMENTS & GARAGES
+    </div>
+  </div>
+
+  <header class="zine-header">
+    <a href="#" class="zine-brand">
+      <div class="zine-badge-icon">P!</div>
+      <div class="zine-title">Jam<span>Pulse</span></div>
+    </a>
+    <div class="zine-nav-pills">
+      <button class="btn-zine-tag" onclick="alert('Delhi NCR radius locked')">📍 Delhi NCR</button>
+      <button class="btn-zine-tag btn-zine-primary" onclick="alert('Opening Host Zine Form')">＋ Host a Jam</button>
+    </div>
+  </header>
+
+  <main class="zine-shell">
+    <!-- Hero Section -->
+    <section class="hero-zine">
+      <div>
+        <div class="tape-tag">ISSUE #42 · CAPITAL MUSIC SCENE</div>
+        <h1 class="hero-h1">
+          Find your people.<br>
+          <span class="riso-print-bleed">Find your sound.</span>
+        </h1>
+        <p class="hero-manifesto">
+          Unfiltered live music sessions happening across Delhi NCR right now. No tickets, no stage distance, no sterile studio polish. Real rooms with loud amplifiers and acoustic warmth.
+        </p>
+        <div class="hero-action-row">
+          <button class="btn-brutal-cta btn-cta-pink" onclick="document.getElementById('zineDiscovery').scrollIntoView({behavior:'smooth'})">
+            Find Jams Near You ➔
+          </button>
+          <button class="btn-brutal-cta btn-cta-white" onclick="alert('Host Session Flow')">
+            Host a Circle
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-flyer-box">
+        <div class="flyer-stamp">LIVE TONIGHT</div>
+        <div class="flyer-head">
+          <span>DISPATCH: SHAHPUR JAT</span>
+          <span>FRI 8:30 PM</span>
+        </div>
+        <div class="flyer-headline">Champa Gali Garage Rock & Noise Circle</div>
+        <div class="flyer-meta-grid">
+          <div>⌖ 3.8 KM DISTANCE</div>
+          <div>🎸 GEAR: 2x 40W AMPS</div>
+          <div>👤 HOST: RISHABH M.</div>
+          <div>🥁 DRUM KIT READY</div>
+        </div>
+        <div class="flyer-note">
+          "Looking for a second guitarist who loves fuzz pedals, plus anyone with a tambourine or backing vocals. Bring your own jack leads!"
+        </div>
+      </div>
+    </section>
+
+    <!-- Discovery Section -->
+    <section class="zine-discovery" id="zineDiscovery">
+      <div class="filter-board">
+        <div>
+          <span class="filter-label-stamp">DISCOVERY RADIUS STENCIL:</span>
+          <div class="radius-stencil-group" id="zineRadiusGroup">
+            <button class="btn-stencil" data-rad="5">5 KM</button>
+            <button class="btn-stencil" data-rad="10">10 KM</button>
+            <button class="btn-stencil active" data-rad="25">25 KM</button>
+            <button class="btn-stencil" data-rad="999">ANY DIST</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="filter-label-stamp">GENRE INK:</span>
+          <select class="zine-select-cutout" id="zineGenreSelect">
+            <option value="All">All Sounds</option>
+            <option value="Punk / Rock">Garage & Indie Rock</option>
+            <option value="Acoustic">Acoustic Unplugged</option>
+            <option value="Blues / Soul">Basement Blues</option>
+            <option value="Sufi / Folk">Sufi & Folk Baithak</option>
+            <option value="Experimental">Noise & Modular Synth</option>
+          </select>
+        </div>
+
+        <div>
+          <span class="filter-label-stamp">ORDER:</span>
+          <select class="zine-select-cutout" id="zineSortSelect">
+            <option value="nearest">Nearest First</option>
+            <option value="time">Starting Soon</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grid Rig: Cards + Riso Map -->
+      <div class="zine-grid-rig">
+        <!-- Cards -->
+        <div class="jam-zine-cards" id="zineCardContainer">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Riso Screenprint Map -->
+        <div class="zine-map-frame">
+          <div class="map-frame-header">
+            <span>PRINTED DELHI NCR LOCATOR</span>
+            <span>28.6139° N</span>
+          </div>
+          <svg class="svg-map-canvas" id="zineSvgMap" viewBox="0 0 400 380">
+            <!-- Map background screenprint lines -->
+            <defs>
+              <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#141416" stroke-width="0.5" stroke-opacity="0.15"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#gridPattern)" />
+
+            <!-- Yamuna river stylized line -->
+            <path d="M 240 0 Q 220 120 250 200 T 230 380" fill="none" stroke="#0038ff" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+
+            <!-- Concentric Radius Stencils -->
+            <circle cx="200" cy="190" r="140" fill="none" stroke="#ff1e6d" stroke-width="2" stroke-dasharray="6 4" opacity="0.4"/>
+            <circle cx="200" cy="190" r="90" fill="none" stroke="#ff1e6d" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/>
+            <circle cx="200" cy="190" r="45" fill="none" stroke="#ff1e6d" stroke-width="2"/>
+
+            <!-- You Are Here Marker -->
+            <g transform="translate(200, 190)">
+              <rect x="-8" y="-8" width="16" height="16" fill="#ffe600" stroke="#141416" stroke-width="2" transform="rotate(45)"/>
+              <text x="14" y="4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">YOU (CP)</text>
+            </g>
+
+            <!-- Dynamic Jam Pins Container -->
+            <g id="mapPinsGroup"></g>
+          </svg>
+          <div class="map-frame-footer" id="mapInspectorText">
+            Tap any pin to view jam location details.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof Zine Reviews -->
+    <section class="zine-reviews">
+      <h2 class="section-h2-zine">Dispatches from the Pit</h2>
+      <div class="reviews-zine-grid">
+        <div class="review-zine-block">
+          <p style="font-weight:700; margin-bottom:12px; font-size:14px;">
+            "We played a three-hour fuzz marathon in a Saidulajab basement. Half the people met on JamPulse the same afternoon. Absolutely unhinged in the best way."
+          </p>
+          <div style="font-family:var(--font-mono); font-size:11px; font-weight:800; color:var(--riso-pink);">
+            — DEV (DRUMS, SOUTH DELHI)
+          </div>
+        </div>
+        <div class="review-zine-block">
+          <p style="font-weight:700; margin-bottom:12px; font-size:14px;">
+            "Found a cellist who wanted to play open-tuning Indian folk over a weekend terrace session in GK-2. No audition nonsense, just music."
+          </p>
+          <div style="font-family:var(--font-mono); font-size:11px; font-weight:800; color:var(--riso-blue);">
+            — ANANYA (VOCALS & SITAR)
+          </div>
+        </div>
+        <div class="review-zine-block">
+          <p style="font-weight:700; margin-bottom:12px; font-size:14px;">
+            "The distance filter is clutch. When you have two guitar cabs and a pedalboard, you want jams within 5 km, not across state borders."
+          </p>
+          <div style="font-family:var(--font-mono); font-size:11px; font-weight:800; color:var(--ink);">
+            — KUNAL (LEAD GUITAR, NOIDA)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing Banner -->
+    <section class="closing-zine-banner">
+      <h2 class="closing-h2">Got an amplifier gathering dust?</h2>
+      <p style="font-size:16px; font-weight:700; max-width:600px; margin:0 auto 24px;">
+        Post a stencil on JamPulse in sixty seconds. Set your noise policy, instruments needed, and invite your neighborhood.
+      </p>
+      <button class="btn-brutal-cta btn-cta-pink" onclick="alert('Host session trigger')">
+        POST A JAM SESSION NOW ➔
+      </button>
+    </section>
+
+    <footer class="zine-footer">
+      <div>JamPulse — Direction 2: The Underground Press (Risograph Punk Zine)</div>
+      <div>DELHI NCR DIY CIRCUITS · 2026</div>
+    </footer>
+  </main>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const ZINE_DATA = [
+        {
+          id: 'z-1',
+          title: 'Champa Gali Garage Rock & Noise Circle',
+          genre: 'Punk / Rock',
+          venue: 'Saidulajab Lane 3, South Delhi',
+          distKm: 3.8,
+          time: 'Tonight @ 8:30 PM',
+          desc: 'High gain garage rock, fuzz pedals, and open riffing. Two 40W guitar combos and a 5-piece kit ready to rock.',
+          instruments: ['Bass', 'Lead Guitar', 'Vocals'],
+          host: 'Rishabh M.',
+          x: 180, y: 240
+        },
+        {
+          id: 'z-2',
+          title: 'Majnu Ka Tilla Rooftop Indie-Pop Session',
+          genre: 'Punk / Rock',
+          venue: 'Old Tibetan Camp Terrace, North Delhi',
+          distKm: 11.2,
+          time: 'Saturday @ 5:00 PM',
+          desc: 'Jangle-pop and dream-rock songwriting circle. Bring your pedals and acoustic or electric instruments.',
+          instruments: ['Cajon', 'Rhythm Guitar', 'Keys'],
+          host: 'Tenzin N.',
+          x: 210, y: 80
+        },
+        {
+          id: 'z-3',
+          title: 'Daryaganj Vinyl & Ukulele Sunday Circle',
+          genre: 'Acoustic',
+          venue: 'Old Delhi Heritage Courtyard',
+          distKm: 6.4,
+          time: 'Sunday @ 11:00 AM',
+          desc: 'Gentle acoustic circle sharing rare vinyl records, fingerpicking acoustic guitars, and harmonies.',
+          instruments: ['Ukulele', 'Acoustic Bass', 'Flute'],
+          host: 'Zoya Q.',
+          x: 230, y: 150
+        },
+        {
+          id: 'z-4',
+          title: 'Green Park Alley Punk & Grunge Circle',
+          genre: 'Punk / Rock',
+          venue: 'Underground Studio, Green Park Ext',
+          distKm: 4.2,
+          time: 'Tonight @ 10:00 PM',
+          desc: '90s grunge, drop-D riffs, and driving basslines. Looking for a singer who loves dirty distortion.',
+          instruments: ['Vocals', 'Drummer', 'Second Guitar'],
+          host: 'Karan B.',
+          x: 170, y: 210
+        },
+        {
+          id: 'z-5',
+          title: 'Mehrauli Baithak Classical Resonance',
+          genre: 'Sufi / Folk',
+          venue: 'Qutub Enclave Courtyard',
+          distKm: 8.6,
+          time: 'Tomorrow @ 6:00 PM',
+          desc: 'Acoustic Indian classical ensemble under the banyan trees. Sitar, sarod, and open tabla accompaniment.',
+          instruments: ['Tabla', 'Sarangi / Violin', 'Harmonium'],
+          host: 'Ustad Shaukat',
+          x: 150, y: 280
+        }
+      ];
+
+      let activeRadius = 25;
+      let activeGenre = 'All';
+      let activeSort = 'nearest';
+      let savedSet = new Set();
+
+      const cardContainer = document.getElementById('zineCardContainer');
+      const mapPinsGroup = document.getElementById('mapPinsGroup');
+      const inspectorText = document.getElementById('mapInspectorText');
+      const radiusBtns = document.querySelectorAll('#zineRadiusGroup .btn-stencil');
+      const genreSelect = document.getElementById('zineGenreSelect');
+      const sortSelect = document.getElementById('zineSortSelect');
+
+      function renderZine() {
+        let filtered = ZINE_DATA.filter(item => {
+          const rMatch = activeRadius >= 999 || item.distKm <= activeRadius;
+          const gMatch = activeGenre === 'All' || item.genre === activeGenre;
+          return rMatch && gMatch;
+        });
+
+        if (activeSort === 'nearest') filtered.sort((a, b) => a.distKm - b.distKm);
+
+        cardContainer.innerHTML = '';
+        mapPinsGroup.innerHTML = '';
+
+        if (filtered.length === 0) {
+          cardContainer.innerHTML = `
+            <div style="background:var(--paper-card); border:var(--border-heavy); padding:30px; text-align:center; box-shadow:var(--shadow-brutal);">
+              <h3 style="font-family:var(--font-display); text-transform:uppercase;">No zine sessions found in this radius</h3>
+              <p style="font-size:13px; font-weight:700; margin-top:6px;">Widen your stencil distance or select another genre.</p>
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach(jam => {
+          const isSaved = savedSet.has(jam.id);
+          const card = document.createElement('div');
+          card.className = 'zine-card';
+          card.innerHTML = `
+            <div class="card-stencil-header">
+              <span class="card-genre-stamp">${jam.genre}</span>
+              <span class="card-dist-pill">★ ${jam.distKm} KM AWAY</span>
+            </div>
+            <h3 class="zine-card-title">${jam.title}</h3>
+            <div class="card-venue-row">📍 ${jam.venue} · ⏰ ${jam.time}</div>
+            <p class="card-zine-body">${jam.desc}</p>
+            <div class="tag-instruments-tape">
+              ${jam.instruments.map(i => `<span class="inst-tape">+ ${i}</span>`).join('')}
+            </div>
+            <div class="card-zine-actions">
+              <button class="btn-zine-save ${isSaved ? 'saved' : ''}" data-id="${jam.id}">
+                ${isSaved ? '★' : '☆'}
+              </button>
+              <div style="display:flex; gap:8px;">
+                <button class="btn-stencil" onclick="alert('Contacting host: ${jam.host}')">Message Host</button>
+                <button class="btn-stencil active" onclick="alert('RSVP confirmed for ${jam.title}')">Join Circle ➔</button>
+              </div>
+            </div>
+          `;
+
+          card.querySelector('.btn-zine-save').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (savedSet.has(jam.id)) savedSet.delete(jam.id);
+            else savedSet.add(jam.id);
+            renderZine();
+          });
+
+          cardContainer.appendChild(card);
+
+          // Add SVG Pin to Map
+          const pinG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          pinG.setAttribute('transform', `translate(${jam.x}, ${jam.y})`);
+          pinG.style.cursor = 'pointer';
+          pinG.innerHTML = `
+            <circle cx="0" cy="0" r="8" fill="#ff1e6d" stroke="#141416" stroke-width="2"/>
+            <circle cx="0" cy="0" r="3" fill="#fff"/>
+          `;
+          pinG.addEventListener('click', () => {
+            inspectorText.innerHTML = `<strong>${jam.title}</strong> · ${jam.distKm} km · ${jam.venue}`;
+          });
+          mapPinsGroup.appendChild(pinG);
+        });
+      }
+
+      radiusBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          radiusBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeRadius = Number(btn.getAttribute('data-rad'));
+          renderZine();
+        });
+      });
+
+      genreSelect.addEventListener('change', () => {
+        activeGenre = genreSelect.value;
+        renderZine();
+      });
+
+      sortSelect.addEventListener('change', () => {
+        activeSort = sortSelect.value;
+        renderZine();
+      });
+
+      renderZine();
+    })();
+  </script>
+</body>
+</html>

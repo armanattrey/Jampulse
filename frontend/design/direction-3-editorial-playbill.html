@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>JamPulse — The Prestige Playbill (Direction 3: Editorial Stage-Playbill)</title>
+  <meta name="description" content="Direction 3: Editorial Stage-Playbill / Salon for JamPulse. Find your people. Find your sound.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       THE PRESTIGE PLAYBILL · EDITORIAL STAGE-PLAYBILL
+       Tech: Ticket-Stub Perforated Cards, SVG Line-Draw Harmonic Wave, Split Serif Typography
+       Palette: Imperial Ink #0e121e, Regal Gold #d4af37, Parchment Cream #fcf9f2
+       ══════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg: #f9f6ef;
+      --bg-surface: #ffffff;
+      --ink: #11141d;
+      --ink-muted: #5e6473;
+      --gold: #c59b27;
+      --gold-foil: linear-gradient(135deg, #d8b13a 0%, #aa7c11 100%);
+      --line: #e8e2d3;
+      --line-dark: #2a3142;
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-display: 'Cinzel', serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Top Archival Ribbon */
+    .archival-ribbon {
+      background: var(--ink); color: #f5eedb; padding: 7px 16px;
+      font-family: var(--font-display); font-size: 11px; letter-spacing: 0.2em; text-align: center;
+      text-transform: uppercase; border-bottom: 1px solid var(--gold);
+    }
+    .archival-ribbon span { color: var(--gold); }
+
+    /* Header */
+    header.playbill-header {
+      padding: 20px clamp(16px, 4vw, 48px);
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--line); background: rgba(249, 246, 239, 0.95);
+      position: sticky; top: 0; z-index: 50; backdrop-filter: blur(10px);
+    }
+    .playbill-brand {
+      display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: var(--ink);
+    }
+    .brand-logo-text {
+      font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .brand-logo-text span { color: var(--gold); }
+    .brand-subline { font-family: var(--font-serif); font-size: 13px; font-style: italic; color: var(--ink-muted); }
+
+    .btn-gold-outline {
+      border: 1px solid var(--gold); background: transparent; color: var(--ink);
+      padding: 9px 20px; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; cursor: pointer; transition: all 0.25s ease;
+    }
+    .btn-gold-outline:hover { background: var(--gold); color: #fff; }
+    .btn-gold-solid {
+      background: var(--ink); color: #f5eedb; border: 1px solid var(--ink);
+      padding: 9px 20px; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; cursor: pointer; transition: all 0.25s ease;
+    }
+    .btn-gold-solid:hover { background: var(--gold); border-color: var(--gold); color: #fff; }
+
+    /* Shell */
+    main.playbill-shell {
+      max-width: 1400px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 48px) 100px;
+    }
+
+    /* Hero */
+    section.hero-editorial {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 50px; align-items: center;
+      padding: 40px 0 60px; border-bottom: 1px solid var(--line);
+    }
+    .hero-pretitle {
+      font-family: var(--font-display); font-size: 12px; letter-spacing: 0.25em;
+      color: var(--gold); text-transform: uppercase; margin-bottom: 16px;
+    }
+    .hero-h1-editorial {
+      font-family: var(--font-serif); font-size: clamp(44px, 6.5vw, 84px);
+      line-height: 0.96; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 24px;
+    }
+    .hero-h1-editorial em {
+      font-style: italic; font-weight: 600; color: #8e6810;
+    }
+    .hero-lead-editorial {
+      font-size: clamp(16px, 1.8vw, 19px); color: var(--ink-muted); line-height: 1.65;
+      max-width: 550px; margin-bottom: 34px;
+    }
+    .hero-buttons-deck { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn-playbill-primary {
+      background: var(--ink); color: #f9f6ef; padding: 15px 32px;
+      font-family: var(--font-display); font-size: 12px; letter-spacing: 0.15em;
+      border: 1px solid var(--ink); cursor: pointer; text-transform: uppercase;
+      box-shadow: 0 10px 25px rgba(17, 20, 29, 0.15); transition: all 0.25s ease;
+    }
+    .btn-playbill-primary:hover { background: #8e6810; border-color: #8e6810; transform: translateY(-2px); }
+
+    /* Harmonic Resonance SVG Line Art */
+    .resonance-hero-frame {
+      background: #ffffff; border: 1px solid var(--line); padding: 30px;
+      box-shadow: 0 15px 40px rgba(17, 20, 29, 0.05); position: relative;
+    }
+    .recital-stamp {
+      position: absolute; top: -12px; right: 24px;
+      background: #fdfbf7; border: 1px solid var(--gold); padding: 4px 12px;
+      font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em; color: var(--gold);
+    }
+    .resonance-svg { width: 100%; height: 160px; display: block; margin: 10px 0 20px; }
+
+    /* Discovery Section */
+    section.playbill-discovery { margin-top: 50px; }
+    .discovery-title-row {
+      display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .playbill-sec-title {
+      font-family: var(--font-serif); font-size: clamp(32px, 4.2vw, 46px); font-weight: 400; line-height: 1.1;
+    }
+    .playbill-sec-title em { font-style: italic; color: #8e6810; }
+
+    /* Filter Deck */
+    .playbill-controls {
+      background: #fff; border: 1px solid var(--line); padding: 18px 24px;
+      display: grid; grid-template-columns: 1fr auto auto; gap: 24px; align-items: center;
+      margin-bottom: 34px; box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+    }
+    .control-deck-label {
+      font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em;
+      color: var(--ink-muted); text-transform: uppercase; margin-bottom: 6px; display: block;
+    }
+    .distance-tokens { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-token {
+      background: var(--bg); border: 1px solid var(--line); padding: 7px 16px;
+      font-family: var(--font-serif); font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-token.active {
+      background: var(--ink); color: #fff; border-color: var(--ink);
+    }
+
+    .playbill-select {
+      background: var(--bg); border: 1px solid var(--line); padding: 10px 18px;
+      font-family: var(--font-serif); font-size: 16px; font-weight: 600; cursor: pointer; outline: none;
+    }
+
+    /* Stage Layout */
+    .playbill-grid {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 34px; align-items: start;
+    }
+
+    /* Ticket Stub Cards */
+    .tickets-stack { display: grid; gap: 20px; }
+    .ticket-stub-card {
+      background: #ffffff; border: 1px solid var(--line);
+      display: grid; grid-template-columns: 1fr 140px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+      position: relative; transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .ticket-stub-card:hover {
+      transform: translateY(-4px); box-shadow: 0 14px 35px rgba(0, 0, 0, 0.08);
+    }
+    .ticket-main-body { padding: 22px 24px; }
+    .ticket-topline {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .ticket-category-tag {
+      font-family: var(--font-display); font-size: 10px; letter-spacing: 0.12em;
+      color: #8e6810; text-transform: uppercase;
+    }
+    .ticket-dist { font-family: var(--font-serif); font-style: italic; font-size: 14px; color: var(--ink-muted); }
+    .ticket-title {
+      font-family: var(--font-serif); font-size: 24px; font-weight: 600; line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .ticket-venue { font-size: 13px; color: var(--ink-muted); margin-bottom: 12px; }
+    .ticket-desc { font-size: 14px; color: #474f60; line-height: 1.55; margin-bottom: 16px; }
+
+    .ensemble-needed-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ensemble-badge {
+      background: var(--bg); border: 1px solid var(--line); padding: 4px 10px;
+      font-size: 11px; font-weight: 600;
+    }
+
+    /* Perforated Rip Zone */
+    .ticket-perforation {
+      border-left: 2px dashed #d1c8b4; background: #faf7f0; padding: 20px 14px;
+      display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+      text-align: center; position: relative;
+    }
+    .ticket-perforation::before, .ticket-perforation::after {
+      content: ""; position: absolute; width: 16px; height: 16px; background: var(--bg);
+      border-radius: 50%; left: -9px;
+    }
+    .ticket-perforation::before { top: -9px; }
+    .ticket-perforation::after { bottom: -9px; }
+
+    .ticket-date-box { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em; color: var(--ink); }
+    .ticket-date-box strong { display: block; font-size: 22px; font-family: var(--font-serif); font-weight: 700; color: #8e6810; }
+    .btn-tear-rsvp {
+      background: var(--ink); color: #fff; border: 0; padding: 8px 12px; width: 100%;
+      font-family: var(--font-display); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-tear-rsvp:hover { background: #8e6810; }
+
+    /* Editorial Cartography Map */
+    .parchment-map-rig {
+      background: #ffffff; border: 1px solid var(--line);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); position: sticky; top: 100px;
+    }
+    .cartography-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--line);
+      display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.12em;
+    }
+    .svg-cartography-canvas { width: 100%; height: 380px; display: block; background: #fdfbf7; }
+
+    /* Testimonials Strip */
+    section.playbill-testimonials {
+      margin: 80px 0 50px; border-top: 1px solid var(--line); padding-top: 50px;
+    }
+    .testimonials-editorial-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .critique-card {
+      background: #ffffff; border: 1px solid var(--line); padding: 26px;
+      font-family: var(--font-serif);
+    }
+    .critique-quote { font-size: 18px; font-style: italic; line-height: 1.6; margin-bottom: 16px; color: #2d3240; }
+    .critique-citation { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em; color: #8e6810; text-transform: uppercase; }
+
+    /* Closing Invitation */
+    section.playbill-invitation {
+      background: var(--ink); color: #fdfbf7; padding: clamp(40px, 6vw, 70px);
+      text-align: center; margin-top: 60px; border: 1px solid var(--gold);
+    }
+    .invitation-h2 {
+      font-family: var(--font-serif); font-size: clamp(34px, 5vw, 60px); font-weight: 400; line-height: 1.05; margin-bottom: 16px;
+    }
+    .invitation-h2 em { color: var(--gold); font-style: italic; }
+
+    footer.playbill-footer {
+      border-top: 1px solid var(--line); padding-top: 30px; margin-top: 60px;
+      display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-muted);
+    }
+
+    @media (max-width: 900px) {
+      section.hero-editorial { grid-template-columns: 1fr; }
+      .playbill-grid { grid-template-columns: 1fr; }
+      .playbill-controls { grid-template-columns: 1fr; }
+      .testimonials-editorial-grid { grid-template-columns: 1fr; }
+      .parchment-map-rig { position: relative; top: auto; order: -1; margin-bottom: 24px; }
+      .ticket-stub-card { grid-template-columns: 1fr; }
+      .ticket-perforation { border-left: 0; border-top: 2px dashed #d1c8b4; padding: 16px; }
+      .ticket-perforation::before, .ticket-perforation::after { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="archival-ribbon">
+    THE PRESTIGE CONCERT REGISTER · DELHI REGION ENSEMBLES · <span>EST. 2026</span>
+  </div>
+
+  <header class="playbill-header">
+    <a href="#" class="playbill-brand">
+      <div class="brand-logo-text">Jam<span>Pulse</span></div>
+      <div class="brand-subline">Classical &amp; Jazz Salons</div>
+    </a>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-gold-outline" onclick="alert('Viewing National Capital Region')">Province: Delhi</button>
+      <button class="btn-gold-solid" onclick="alert('Convene a Salon')">Convene a Salon</button>
+    </div>
+  </header>
+
+  <main class="playbill-shell">
+    <section class="hero-editorial">
+      <div>
+        <div class="hero-pretitle">The Capital Chamber Music Circuit</div>
+        <h1 class="hero-h1-editorial">
+          Find your people.<br>
+          <em>Find your sound.</em>
+        </h1>
+        <p class="hero-lead-editorial">
+          Gather with classical virtuosos, jazz instrumentalists, and chamber string ensembles across Delhi NCR. Intimate acoustic salons convened in heritage havelis, terraces, and quiet studios.
+        </p>
+        <div class="hero-buttons-deck">
+          <button class="btn-playbill-primary" onclick="document.getElementById('playbillDiscovery').scrollIntoView({behavior:'smooth'})">
+            Discover Salons Near You ➔
+          </button>
+          <button class="btn-gold-outline" onclick="alert('Hosting Flow')">
+            Convene a Session
+          </button>
+        </div>
+      </div>
+
+      <div class="resonance-hero-frame">
+        <div class="recital-stamp">RECITAL NOTICE</div>
+        <div style="font-family:var(--font-display); font-size:12px; letter-spacing:0.1em; color:#8e6810; margin-bottom:4px;">
+          FEATURED BAITHAK
+        </div>
+        <div style="font-family:var(--font-serif); font-size:26px; font-weight:600; line-height:1.15; margin-bottom:8px;">
+          Sunder Nursery Twilight Sitar &amp; Flute Baithak
+        </div>
+        <div style="font-size:13px; color:var(--ink-muted); margin-bottom:14px;">
+          Nizamuddin Heritage Gardens · Tomorrow, 6:00 PM
+        </div>
+
+        <!-- SVG Harmonic Wave Drawing -->
+        <svg class="resonance-svg" viewBox="0 0 320 80">
+          <path d="M 0 40 Q 40 10 80 40 T 160 40 T 240 40 T 320 40" fill="none" stroke="#d4af37" stroke-width="2"/>
+          <path d="M 0 40 Q 40 70 80 40 T 160 40 T 240 40 T 320 40" fill="none" stroke="#11141d" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+
+        <p style="font-family:var(--font-serif); font-size:15px; font-style:italic; line-height:1.5; color:#3e4452;">
+          "Seeking accompaniment on tanpura and light pakhavaj for an exploration of evening Raag Yaman under open skies."
+        </p>
+      </div>
+    </section>
+
+    <!-- Discovery Section -->
+    <section class="playbill-discovery" id="playbillDiscovery">
+      <div class="discovery-title-row">
+        <div>
+          <h2 class="playbill-sec-title">Current <em>Convocations</em></h2>
+          <p style="font-size:14px; color:var(--ink-muted);">Curated ensembles currently seeking guest instrumentation.</p>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="playbill-controls">
+        <div>
+          <span class="control-deck-label">Proximity Radius:</span>
+          <div class="distance-tokens" id="editorialTokens">
+            <button class="btn-token" data-rad="5">5 km</button>
+            <button class="btn-token" data-rad="10">10 km</button>
+            <button class="btn-token active" data-rad="25">25 km</button>
+            <button class="btn-token" data-rad="999">Universal</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="control-deck-label">Genre Discipline:</span>
+          <select class="playbill-select" id="playbillGenre">
+            <option value="All">All Disciplines</option>
+            <option value="Classical">Hindustani Classical</option>
+            <option value="Jazz">Chamber Jazz</option>
+            <option value="Acoustic">Acoustic Strings</option>
+            <option value="Sufi">Sufi Baithak</option>
+          </select>
+        </div>
+
+        <div>
+          <span class="control-deck-label">Sort By:</span>
+          <select class="playbill-select" id="playbillSort">
+            <option value="nearest">Nearest Venue</option>
+            <option value="time">Starting Soon</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grid Rig -->
+      <div class="playbill-grid">
+        <div class="tickets-stack" id="ticketContainer"></div>
+
+        <!-- Cartography Panel -->
+        <div class="parchment-map-rig">
+          <div class="cartography-header">
+            <span>REGIONAL CARTOGRAPHY</span>
+            <span style="color:#8e6810;">DELHI PROVINCE</span>
+          </div>
+          <svg class="svg-cartography-canvas" id="parchmentMap" viewBox="0 0 380 380">
+            <!-- Compass Rose Accent -->
+            <g transform="translate(60, 60)">
+              <circle cx="0" cy="0" r="24" fill="none" stroke="#d4af37" stroke-width="1"/>
+              <path d="M 0 -24 L 5 0 L 0 24 L -5 0 Z" fill="#11141d"/>
+              <path d="M -24 0 L 0 5 L 24 0 L 0 -5 Z" fill="#8e6810"/>
+              <text x="-4" y="-28" font-family="'Cinzel', serif" font-size="9" font-weight="700">N</text>
+            </g>
+
+            <!-- Radius Rings -->
+            <circle cx="190" cy="190" r="140" fill="none" stroke="#d1c8b4" stroke-width="1" stroke-dasharray="4 4"/>
+            <circle cx="190" cy="190" r="85" fill="none" stroke="#d1c8b4" stroke-width="1" stroke-dasharray="4 4"/>
+            <circle cx="190" cy="190" r="45" fill="none" stroke="#8e6810" stroke-width="1.5"/>
+
+            <g id="mapParchmentPins"></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Critiques -->
+    <section class="playbill-testimonials">
+      <div class="testimonials-editorial-grid">
+        <div class="critique-card">
+          <p class="critique-quote">"A revelation for the city's chamber musicians. We formed an entire string quartet through invitations extended in Sunder Nursery."</p>
+          <div class="critique-citation">— Maestro A. Chatterjee, Cellist</div>
+        </div>
+        <div class="critique-card">
+          <p class="critique-quote">"The dignity of the salon restored. It eliminates loud commercial distractions and honors musicianship above all."</p>
+          <div class="critique-citation">— Vidushi Sunita Rao, Vocalist</div>
+        </div>
+        <div class="critique-card">
+          <p class="critique-quote">"Terrific fidelity. Being able to define exact instrument needs brings only serious, prepared players to your rehearsal room."</p>
+          <div class="critique-citation">— David Sterling, Jazz Pianist</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing Invitation -->
+    <section class="playbill-invitation">
+      <h2 class="invitation-h2">Do you command a <em>room</em>?</h2>
+      <p style="font-size:16px; max-width:600px; margin:0 auto 28px; color:#d1c8b4;">
+        Convene a musical salon at your estate, recital room, or acoustic hall. Welcome fellow masters to your instruments.
+      </p>
+      <button class="btn-playbill-primary" style="background:#d4af37; border-color:#d4af37; color:#11141d;" onclick="alert('Convene salon')">
+        Convene a Session Now
+      </button>
+    </section>
+
+    <footer class="playbill-footer">
+      <div>JamPulse — Direction 3: The Prestige Playbill (Editorial Stage-Playbill)</div>
+      <div>Classical &amp; Jazz Salons of Delhi · 2026</div>
+    </footer>
+  </main>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const SALONS_DATA = [
+        {
+          id: 's-1',
+          title: 'Kamani Auditorium Chamber Jazz Evening',
+          discipline: 'Jazz',
+          venue: 'Mandi House Art District, Central Delhi',
+          distKm: 4.1,
+          dateMonth: 'OCT', dateDay: '12',
+          desc: 'Improvisational hard bop and cool jazz salon. Steinway baby grand piano and vintage upright bass on premises.',
+          ensemble: ['Trumpet', 'Clarinet', 'Tenor Saxophone'],
+          x: 200, y: 150
+        },
+        {
+          id: 's-2',
+          title: 'Sunder Nursery Twilight Sitar Baithak',
+          discipline: 'Classical',
+          venue: 'Nizamuddin Heritage Gardens, South Delhi',
+          distKm: 6.8,
+          dateMonth: 'OCT', dateDay: '13',
+          desc: 'Sunset exploration of classical ragas. Quiet garden pavilion with traditional carpet seating and acoustic warmth.',
+          ensemble: ['Tanpura', 'Tabla', 'Flute (Bansuri)'],
+          x: 220, y: 210
+        },
+        {
+          id: 's-3',
+          title: 'India Habitat Centre Courtyard Ensemble',
+          discipline: 'Acoustic',
+          venue: 'Lodhi Road Cultural Centre',
+          distKm: 5.2,
+          dateMonth: 'OCT', dateDay: '15',
+          desc: 'Spanish classical guitar and string ensemble session. Reading arrangements of Albeniz, Tarrega, and modern compositions.',
+          ensemble: ['Classical Guitar', 'Violin', 'Cello'],
+          x: 180, y: 190
+        },
+        {
+          id: 's-4',
+          title: 'Siri Fort Terrace Bossa Nova Circle',
+          discipline: 'Jazz',
+          venue: 'August Kranti Marg Private Terrace',
+          distKm: 8.5,
+          dateMonth: 'OCT', dateDay: '18',
+          desc: 'Intimate Jobim and Stan Getz bossa nova salon. Nylon strings, gentle brushes, and Portuguese vocal phrasing.',
+          ensemble: ['Flute', 'Nylon Guitar', 'Vocals'],
+          x: 170, y: 250
+        },
+        {
+          id: 's-5',
+          title: 'Civil Lines Heritage Courtyard Folk Salon',
+          discipline: 'Sufi',
+          venue: 'Old Delhi Grand Courtyard',
+          distKm: 14.2,
+          dateMonth: 'OCT', dateDay: '20',
+          desc: 'Traditional Punjabi and Awadhi folk compositions preserved in family manuscripts.',
+          ensemble: ['Harmonium', 'Dholak', 'Sarod'],
+          x: 190, y: 90
+        }
+      ];
+
+      let activeRadius = 25;
+      let activeGenre = 'All';
+
+      const container = document.getElementById('ticketContainer');
+      const pinsGroup = document.getElementById('mapParchmentPins');
+      const tokens = document.querySelectorAll('#editorialTokens .btn-token');
+      const genreSelect = document.getElementById('playbillGenre');
+
+      function renderSalons() {
+        const filtered = SALONS_DATA.filter(s => {
+          const rMatch = activeRadius >= 999 || s.distKm <= activeRadius;
+          const gMatch = activeGenre === 'All' || s.discipline === activeGenre;
+          return rMatch && gMatch;
+        });
+
+        container.innerHTML = '';
+        pinsGroup.innerHTML = '';
+
+        if (filtered.length === 0) {
+          container.innerHTML = `
+            <div style="background:#fff; border:1px solid var(--line); padding:40px; text-align:center;">
+              <h3 style="font-family:var(--font-serif); font-size:22px;">No Convocations Listed Within This Reach</h3>
+              <p style="color:var(--ink-muted); font-size:14px; margin-top:6px;">Expand your proximity token or choose an alternative musical discipline.</p>
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach(salon => {
+          const card = document.createElement('article');
+          card.className = 'ticket-stub-card';
+          card.innerHTML = `
+            <div class="ticket-main-body">
+              <div class="ticket-topline">
+                <span class="ticket-category-tag">${salon.discipline} SALON</span>
+                <span class="ticket-dist">${salon.distKm} km from center</span>
+              </div>
+              <h3 class="ticket-title">${salon.title}</h3>
+              <div class="ticket-venue">📍 ${salon.venue}</div>
+              <p class="ticket-desc">${salon.desc}</p>
+              <div class="ensemble-needed-row">
+                ${salon.ensemble.map(e => `<span class="ensemble-badge">+ ${e}</span>`).join('')}
+              </div>
+            </div>
+            <div class="ticket-perforation">
+              <div class="ticket-date-box">
+                ${salon.dateMonth}
+                <strong>${salon.dateDay}</strong>
+              </div>
+              <button class="btn-tear-rsvp" onclick="alert('Invitation requested for ${salon.title}')">
+                Request Seat
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+
+          // SVG Map Pin
+          const pin = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          pin.setAttribute('transform', `translate(${salon.x}, ${salon.y})`);
+          pin.innerHTML = `
+            <circle cx="0" cy="0" r="6" fill="#8e6810" stroke="#fff" stroke-width="2"/>
+          `;
+          pinsGroup.appendChild(pin);
+        });
+      }
+
+      tokens.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tokens.forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          activeRadius = Number(btn.getAttribute('data-rad'));
+          renderSalons();
+        });
+      });
+
+      genreSelect.addEventListener('change', () => {
+        activeGenre = genreSelect.value;
+        renderSalons();
+      });
+
+      renderSalons();
+    })();
+  </script>
+</body>
+</html>

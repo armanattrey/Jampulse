@@ -1,4 +1,4 @@
-# Jampals API
+# JamPulse API
 
 The Express API lives in `backend/` and uses MongoDB. The same server entry point works locally and on a Node hosting service. The website and Capacitor phone app use the same `/api` routes; only their API base address differs (same-origin on the website, absolute URL in the app).
 
@@ -9,6 +9,7 @@ The Express API lives in `backend/` and uses MongoDB. The same server entry poin
 - `routes/jams.js` — nearby jam search, hosting a jam, and RSVP changes.
 - `routes/reviews.js` — reading and submitting jam reviews.
 - `routes/chat.js` — starting jam conversations and reading or sending messages.
+- `routes/calls.js` — short-lived, privacy-masked phone call lines for opted-in jams.
 - `middleware/authMiddleware.js` — validates bearer tokens and loads the matching user.
 - `models/` — MongoDB document shapes and geospatial indexes.
 - `.env.example` — names of local settings; copy it to `.env` and provide your own values.
@@ -57,6 +58,7 @@ The free Render service is suitable for a prototype, not an always-on production
 - `GET /api/reviews/:jamSessionId` and `POST /api/reviews/:jamSessionId` — read or submit a rating
 - `GET /api/chat/conversations`, `POST /api/chat/initiate` — list inbox threads or start a conversation for a jam
 - `GET /api/chat/:conversationId/messages?limit=...`, `POST /api/chat/:conversationId/message` — read the latest 100 messages or send a message
+- `POST /api/calls/request` — request a temporary shared phone number (requires an RSVP, verified phone numbers, host opt-in, and Exotel GreenVN setup)
 
 ## Local showcase demo
 
@@ -71,5 +73,11 @@ All request bodies are JSON. For phone sign-in, send `POST /api/auth/phone/send-
 Include `Authorization: Bearer <token>` on hosting, RSVP, profile, review, and chat requests. For jam creation, send `title`, `hostTeam`, `locationName`, numeric `lat` and `lng`, ISO date strings `startTime` and `endTime`, and `discoveryRadiusKm`; `vibe`, `genres`, `instrumentsNeeded`, and `description` are optional. Jam search needs numeric `lat` and `lng`; `radiusKm` (1–20,100), `mapRadiusKm` (optional, from the selected radius through 20,100), `sortBy`, `vibe`, and `query` are optional. The website/app use a logarithmic slider inside the Custom distance section so small local ranges remain adjustable while the endpoint reaches the global “Any distance” option.
 
 Phone and email verification codes are kept in memory for ten minutes. A contact can request a code once per minute and gets five incorrect attempts before that code is locked until it expires. Without `SMS_API_KEY`, local phone sign-in prints a development code in the API log; it does not send an SMS. Production phone sign-in needs an SMS provider. For local email testing, set `SMTP_HOST` and `SMTP_PORT` to a development mail catcher. For hosted email on Render's free plan, configure `RESEND_API_KEY` and `EMAIL_FROM`; this sends via HTTPS, since free Render services block outbound SMTP. Use a sender address verified with the email provider. Google sign-in needs `GOOGLE_CLIENT_ID`. These providers are optional for local guest access and the core jam API.
+
+### In-app contact, private calls, and notifications
+
+WhatsApp contact links have been removed. Members can contact hosts through the JamPulse inbox. A host may also opt a jam into private calls. Only phone-verified hosts and phone-verified attendees who have RSVP'd can request a temporary shared number; the attendee and host both call that number, which hides their personal numbers. The server limits requests and the allocation expires after ten minutes. To activate real calls, Exotel must enable Lead Assist GreenVN for your account and you must set `EXOTEL_LEAD_ASSIST_TENANT_ID`, `EXOTEL_ACCOUNT_SID`, and `EXOTEL_EXOBRIDGE_TOKEN` locally or in the hosting dashboard. Without those credentials, the API reports that calling is not configured and does not reveal personal numbers. Exotel may charge for the service; confirm current account terms before enabling it.
+
+The Notifications menu can request browser notification permission on HTTPS. Permission alone does not deliver background alerts: web push still needs a service worker, push subscription storage, VAPID credentials, and event delivery; native phone push needs platform push credentials and a native push integration. JamPulse currently does not claim to deliver those alerts.
 
 A multi-instance production deployment should move OTP storage and rate limits to a shared store. In-memory OTPs and limits reset when the server restarts, so codes cannot be verified across multiple instances or after a restart.

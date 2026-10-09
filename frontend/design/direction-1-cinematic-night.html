@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>JamPulse — The Midnight Stage (Direction 1: Cinematic Night-Venue)</title>
+  <meta name="description" content="Direction 1: Cinematic Night-Venue / Neon Noir for JamPulse. Find your people. Find your sound.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       THE MIDNIGHT STAGE · CINEMATIC NIGHT-VENUE / NEON NOIR
+       Tech: Canvas Audio Spectrum, 3D Perspective Tilt, Specular Beams
+       Palette: Obsidian #090b10, Neon Amber #ff9838, Violet Glow #9055ff
+       ══════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg: #090b10;
+      --bg-surface: #10141e;
+      --bg-card: #151a27;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(255, 152, 56, 0.35);
+      --text: #f0f3fa;
+      --text-muted: #848ea4;
+      --amber: #ff9838;
+      --amber-glow: rgba(255, 152, 56, 0.45);
+      --coral: #ff4757;
+      --violet: #8c52ff;
+      --emerald: #05df9d;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+      selection-background-color: var(--amber);
+      selection-color: #000;
+      perspective: 1200px;
+    }
+
+    /* Ambient Spotlight Backdrop */
+    .stage-backdrop {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .spotlight {
+      position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.28;
+      animation: drift 22s ease-in-out infinite alternate;
+    }
+    .spot-1 { width: 60vw; height: 60vw; top: -20vw; left: -10vw; background: radial-gradient(circle, var(--amber), transparent 70%); }
+    .spot-2 { width: 50vw; height: 50vw; bottom: -10vw; right: -10vw; background: radial-gradient(circle, var(--violet), transparent 70%); animation-delay: -8s; }
+    .spot-3 { width: 35vw; height: 35vw; top: 40%; left: 45%; background: radial-gradient(circle, #ff3b6c, transparent 75%); opacity: 0.15; animation-delay: -14s; }
+
+    @keyframes drift {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(60px, 40px) scale(1.12); }
+    }
+
+    /* Scanline & Noise Overlay */
+    .film-grain {
+      position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Header Nav */
+    header.stage-header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(20px, 4vw, 48px);
+      background: rgba(9, 11, 16, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-group { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+    .stage-logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--amber), #ff5436);
+      display: grid; place-items: center; font-size: 20px; color: #000; font-weight: 900;
+      box-shadow: 0 0 20px var(--amber-glow);
+    }
+    .brand-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .brand-title span { color: var(--amber); }
+    .live-pulse-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(5, 223, 157, 0.12); border: 1px solid rgba(5, 223, 157, 0.3);
+      font-size: 11px; font-weight: 700; color: var(--emerald); font-family: var(--font-mono);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); box-shadow: 0 0 10px var(--emerald); animation: radar-pulse 1.8s infinite; }
+    @keyframes radar-pulse { 0% { transform: scale(0.9); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.4; } 100% { transform: scale(0.9); opacity: 1; } }
+
+    .nav-actions { display: flex; align-items: center; gap: 14px; }
+    .btn-ghost {
+      background: transparent; color: var(--text); border: 1px solid var(--border);
+      padding: 9px 18px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.2); }
+    .btn-fire {
+      background: linear-gradient(135deg, var(--amber), #ff5238);
+      color: #0b0d13; border: 0; padding: 10px 22px; border-radius: 10px;
+      font-weight: 800; font-size: 13px; cursor: pointer;
+      box-shadow: 0 4px 20px var(--amber-glow);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+    }
+    .btn-fire:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255, 152, 56, 0.6); }
+
+    /* Main Container */
+    main.content-rig { position: relative; z-index: 10; max-width: 1440px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px) 100px; }
+
+    /* Hero Section */
+    section.hero-stage {
+      padding: 70px 0 50px;
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; align-items: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-family: var(--font-mono); font-weight: 700;
+      color: var(--amber); text-transform: uppercase; letter-spacing: 0.15em;
+      margin-bottom: 18px;
+    }
+    .hero-heading {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 5.5vw, 76px);
+      font-weight: 900; line-height: 1.02; letter-spacing: -0.04em;
+      margin-bottom: 24px;
+    }
+    .hero-heading .amber-line {
+      background: linear-gradient(100deg, #ffb454, var(--amber) 40%, #ff4b4b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      display: inline-block; filter: drop-shadow(0 0 25px rgba(255, 152, 56, 0.35));
+    }
+    .hero-lead {
+      font-size: clamp(16px, 1.8vw, 19px);
+      color: var(--text-muted); max-width: 580px; line-height: 1.6; margin-bottom: 34px;
+    }
+    .hero-cta-group { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .btn-primary-stage {
+      padding: 15px 32px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--amber), #ff4838);
+      color: #090b10; font-weight: 800; font-size: 15px; border: 0; cursor: pointer;
+      box-shadow: 0 8px 30px var(--amber-glow);
+      display: inline-flex; align-items: center; gap: 10px;
+      transition: all 0.25s ease;
+    }
+    .btn-primary-stage:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 14px 40px rgba(255, 152, 56, 0.7); }
+    .btn-secondary-stage {
+      padding: 15px 28px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05); color: #fff;
+      border: 1px solid var(--border); font-weight: 700; font-size: 15px; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary-stage:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.25); }
+
+    /* Interactive Audio Visualizer Rig in Hero */
+    .hero-visualizer-box {
+      background: linear-gradient(145deg, rgba(21, 26, 39, 0.8), rgba(12, 15, 23, 0.95));
+      border: 1px solid var(--border); border-radius: 20px; padding: 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      position: relative; overflow: hidden;
+    }
+    .visualizer-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .station-info { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--amber); }
+    .audio-canvas-frame { width: 100%; height: 160px; background: rgba(5, 7, 10, 0.7); border-radius: 12px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+    #soundSpectrumCanvas { width: 100%; height: 100%; display: block; }
+    .visualizer-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 12px; color: var(--text-muted); }
+    .sound-toggle-btn {
+      background: rgba(255, 152, 56, 0.15); color: var(--amber); border: 1px solid rgba(255, 152, 56, 0.35);
+      border-radius: 8px; padding: 6px 14px; font-size: 11px; font-family: var(--font-mono); font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .sound-toggle-btn:hover { background: rgba(255, 152, 56, 0.3); }
+
+    /* Stats Marquee Strip */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+      margin: 40px 0 60px; padding: 24px 30px;
+      background: rgba(16, 20, 30, 0.6); border: 1px solid var(--border);
+      border-radius: 18px; backdrop-filter: blur(12px);
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 4px; }
+    .stat-number { font-family: var(--font-display); font-size: clamp(24px, 3vw, 36px); font-weight: 900; color: #fff; letter-spacing: -0.02em; }
+    .stat-number span { color: var(--amber); font-size: 0.75em; }
+    .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* Discovery Section */
+    section.discovery-rig { margin-top: 30px; }
+    .discovery-headline {
+      display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .discovery-title { font-family: var(--font-display); font-size: clamp(28px, 3.5vw, 42px); font-weight: 800; letter-spacing: -0.03em; }
+    .discovery-title span { color: var(--amber); }
+
+    /* Controls Strip */
+    .stage-controls {
+      display: grid; grid-template-columns: 1fr auto auto; gap: 18px; align-items: center;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 18px 24px; margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+    .radius-selector-box { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .control-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-family: var(--font-mono); }
+    .radius-pills { display: flex; gap: 6px; }
+    .rad-pill {
+      background: rgba(255, 255, 255, 0.05); color: var(--text-muted);
+      border: 1px solid var(--border); padding: 7px 14px; border-radius: 8px;
+      font-size: 12px; font-weight: 700; font-family: var(--font-mono); cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .rad-pill:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+    .rad-pill.active {
+      background: var(--amber); color: #090b10; border-color: var(--amber);
+      font-weight: 800; box-shadow: 0 0 14px var(--amber-glow);
+    }
+
+    .custom-slider-container { display: flex; align-items: center; gap: 8px; }
+    .custom-slider-container input[type="range"] {
+      width: 110px; accent-color: var(--amber); cursor: pointer;
+    }
+    .slider-val-readout { font-family: var(--font-mono); font-size: 12px; color: var(--amber); font-weight: 700; min-width: 45px; }
+
+    .genre-filter-select, .sort-filter-select {
+      background: rgba(255, 255, 255, 0.05); color: #fff;
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px;
+      font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer;
+      outline: none;
+    }
+    .genre-filter-select option, .sort-filter-select option { background: var(--bg-surface); color: #fff; }
+
+    /* Dual Column Layout: Sessions Grid & Night Map */
+    .stage-layout {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 28px; align-items: start;
+    }
+
+    /* Cards Grid */
+    .sessions-stream { display: grid; gap: 18px; }
+    .jam-night-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px;
+      padding: 16px; display: grid; grid-template-columns: 140px 1fr; gap: 20px;
+      position: relative; overflow: hidden;
+      transform-style: preserve-3d;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2), border-color 0.25s, box-shadow 0.25s;
+      cursor: pointer;
+    }
+    .jam-night-card:hover {
+      border-color: var(--border-glow);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 152, 56, 0.15);
+      transform: translateY(-4px);
+    }
+
+    /* Poster Art Block */
+    .card-poster {
+      border-radius: 12px; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 14px; min-height: 165px;
+      color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+    .poster-accent-rings {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0 12%, transparent 13%),
+                        radial-gradient(circle at 10% 90%, rgba(255,255,255,0.15) 0 20%, transparent 22%);
+    }
+    .poster-vibe-tag {
+      position: relative; z-index: 2; font-family: var(--font-mono); font-size: 9px;
+      font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em;
+      background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 6px; width: fit-content;
+      backdrop-filter: blur(4px);
+    }
+    .poster-title-stamp {
+      position: relative; z-index: 2; font-family: var(--font-display);
+      font-size: 20px; font-weight: 900; line-height: 0.95; letter-spacing: -0.03em;
+      text-transform: uppercase;
+    }
+    .poster-host-pill {
+      position: relative; z-index: 2; font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* Poster themes */
+    .theme-jazz { background: linear-gradient(145deg, #7c3aed, #3b0764 70%, #1e1b4b); }
+    .theme-sufi { background: linear-gradient(145deg, #d97706, #78350f 70%, #451a03); }
+    .theme-indie { background: linear-gradient(145deg, #059669, #064e3b 70%, #022c22); }
+    .theme-blues { background: linear-gradient(145deg, #2563eb, #1e3a8a 70%, #0f172a); }
+    .theme-electronic { background: linear-gradient(145deg, #db2777, #831843 70%, #3b0764); }
+
+    /* Card Details */
+    .card-body { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+    .card-topline { display: flex; justify-content: space-between; align-items: center; }
+    .card-time { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--amber); }
+    .btn-save-bookmark {
+      background: transparent; border: 0; color: var(--text-muted); font-size: 18px;
+      cursor: pointer; transition: color 0.2s; line-height: 1;
+    }
+    .btn-save-bookmark.saved, .btn-save-bookmark:hover { color: var(--coral); }
+    .jam-session-title {
+      font-family: var(--font-display); font-size: 18px; font-weight: 800;
+      letter-spacing: -0.02em; color: #fff; margin: 4px 0 6px;
+    }
+    .jam-location-meta { display: flex; gap: 14px; font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .jam-location-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .jam-desc-text { font-size: 13px; color: #a4afc3; line-height: 1.5; margin: 8px 0; }
+
+    .card-bottom-deck { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: auto; }
+    .instrument-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .instrument-pill {
+      font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.06); color: #cbd5e1;
+      padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+    }
+    .card-actions { display: flex; gap: 8px; }
+    .btn-card-action {
+      padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: #fff;
+      transition: all 0.2s;
+    }
+    .btn-card-action:hover { background: rgba(255,255,255,0.12); }
+    .btn-card-primary {
+      background: var(--amber); color: #090b10; border-color: var(--amber); font-weight: 800;
+    }
+    .btn-card-primary:hover { background: #ffaa54; }
+
+    /* Night Venue Map Panel */
+    .night-map-panel {
+      position: sticky; top: 100px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .map-header-bar {
+      padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+      background: rgba(16, 20, 30, 0.9); border-bottom: 1px solid var(--border);
+      font-size: 12px; font-family: var(--font-mono); font-weight: 700;
+    }
+    .radar-canvas-container {
+      position: relative; height: 420px; background: #0c0f17; overflow: hidden;
+    }
+    #nightRadarCanvas { width: 100%; height: 100%; display: block; }
+    .map-floating-overlay {
+      position: absolute; bottom: 16px; left: 16px; right: 16px;
+      background: rgba(16, 20, 30, 0.88); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+    }
+    .active-pin-info strong { color: var(--amber); font-weight: 800; display: block; }
+    .active-pin-info span { color: var(--text-muted); font-size: 11px; }
+
+    /* Social Proof Section */
+    section.testimonials-stage {
+      margin: 90px 0 60px;
+    }
+    .section-eyebrow { font-family: var(--font-mono); font-size: 12px; color: var(--amber); text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; }
+    .section-title { font-family: var(--font-display); font-size: clamp(26px, 3.2vw, 38px); font-weight: 900; letter-spacing: -0.02em; margin: 8px 0 30px; }
+    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .testi-card {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
+      gap: 16px; transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .testi-card:hover { transform: translateY(-4px); border-color: rgba(255, 152, 56, 0.3); }
+    .testi-quote { font-size: 14px; color: #cbd5e1; line-height: 1.6; font-style: italic; }
+    .testi-author { display: flex; align-items: center; gap: 12px; }
+    .author-avatar { width: 40px; height: 40px; border-radius: 50%; background: #262e42; display: grid; place-items: center; font-weight: 800; color: var(--amber); border: 1px solid var(--border); }
+    .author-name { font-weight: 700; font-size: 13px; color: #fff; }
+    .author-role { font-size: 11px; color: var(--text-muted); }
+
+    /* Closing CTA */
+    section.closing-cta {
+      margin-top: 60px;
+      background: linear-gradient(135deg, rgba(255, 152, 56, 0.12), rgba(140, 82, 255, 0.08) 60%, rgba(9, 11, 16, 0.95));
+      border: 1px solid rgba(255, 152, 56, 0.25); border-radius: 24px; padding: clamp(36px, 6vw, 64px);
+      text-align: center; position: relative; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    }
+    .cta-h2 { font-family: var(--font-display); font-size: clamp(32px, 4.5vw, 54px); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 16px; }
+    .cta-p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto 30px; }
+
+    /* Footer */
+    footer.stage-footer {
+      border-top: 1px solid var(--border); padding: 40px clamp(20px, 4vw, 48px);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;
+      font-size: 12px; color: var(--text-muted);
+    }
+
+    /* Empty state */
+    .empty-state-notice {
+      grid-column: 1 / -1; padding: 60px 20px; text-align: center;
+      background: rgba(16, 20, 30, 0.5); border: 1px dashed var(--border); border-radius: 16px;
+    }
+    .empty-state-notice h3 { font-size: 18px; color: #fff; margin-bottom: 6px; }
+    .empty-state-notice p { color: var(--text-muted); font-size: 13px; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-stage { grid-template-columns: 1fr; gap: 30px; }
+      .stage-layout { grid-template-columns: 1fr; }
+      .night-map-panel { position: relative; top: auto; order: -1; margin-bottom: 24px; }
+      .testimonials-grid { grid-template-columns: 1fr 1fr; }
+      .stats-strip { grid-template-columns: 1fr 1fr; gap: 24px; }
+    }
+    @media (max-width: 768px) {
+      .stage-controls { grid-template-columns: 1fr; gap: 14px; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .jam-night-card { grid-template-columns: 1fr; }
+      .card-poster { min-height: 120px; }
+      .stats-strip { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage-backdrop">
+    <div class="spotlight spot-1"></div>
+    <div class="spotlight spot-2"></div>
+    <div class="spotlight spot-3"></div>
+  </div>
+  <div class="film-grain"></div>
+
+  <header class="stage-header">
+    <a href="#" class="brand-group">
+      <div class="stage-logo-icon">♫</div>
+      <div class="brand-title">Jam<span>Pulse</span></div>
+    </a>
+    <div class="live-pulse-badge">
+      <span class="pulse-dot"></span>
+      <span>14 Delhi NCR Sessions Active</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-ghost" onclick="alert('Viewing Delhi NCR radius')">⌖ Delhi NCR</button>
+      <button class="btn-fire" onclick="alert('Open Host Jam Modal')">＋ Host a Jam</button>
+    </div>
+  </header>
+
+  <main class="content-rig">
+    <!-- Hero Section -->
+    <section class="hero-stage">
+      <div>
+        <div class="hero-eyebrow">⚡ Underground Sessions · Rooftops · Basements</div>
+        <h1 class="hero-heading">
+          Find your people.<br>
+          <span class="amber-line">Find your sound.</span>
+        </h1>
+        <p class="hero-lead">
+          Connect with Delhi NCR musicians tuning up within walking and metro distance. Acoustic terrace circles, late-night jazz cellars, and open jams with zero gatekeeping.
+        </p>
+        <div class="hero-cta-group">
+          <button class="btn-primary-stage" onclick="document.getElementById('discoverySection').scrollIntoView({behavior:'smooth'})">
+            <span>Find Jams Near You</span> →
+          </button>
+          <button class="btn-secondary-stage" onclick="alert('Opening Jam Creation Wizard')">
+            Host a Session
+          </button>
+        </div>
+      </div>
+
+      <!-- Real Canvas Soundwave Spectrogram -->
+      <div class="hero-visualizer-box">
+        <div class="visualizer-topline">
+          <div class="station-info">
+            <span>LIVE AUDIO MONITOR</span> · <span id="bpmDisplay">112 BPM</span>
+          </div>
+          <button class="sound-toggle-btn" id="audioPulseBtn">
+            <span>▶ Tune Frequency</span>
+          </button>
+        </div>
+        <div class="audio-canvas-frame">
+          <canvas id="soundSpectrumCanvas"></canvas>
+        </div>
+        <div class="visualizer-footer">
+          <span>Active Monitor: Hauz Khas / Shahpur Jat</span>
+          <span style="color:var(--emerald)">● 60 FPS Low-Latency</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof Stats Strip -->
+    <div class="stats-strip">
+      <div class="stat-item">
+        <div class="stat-number">480<span>+</span></div>
+        <div class="stat-label">Delhi NCR Musicians</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">18<span>km</span></div>
+        <div class="stat-label">Avg Discovery Radius</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">92<span>%</span></div>
+        <div class="stat-label">RSVP Show-up Rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">3.2<span>hrs</span></div>
+        <div class="stat-label">Avg Jam Session Length</div>
+      </div>
+    </div>
+
+    <!-- Discovery Section -->
+    <section class="discovery-rig" id="discoverySection">
+      <div class="discovery-headline">
+        <div>
+          <div class="section-eyebrow">LIVE RADAR DISCOVERY</div>
+          <h2 class="discovery-title">Sessions happening <span>tonight</span></h2>
+        </div>
+        <div style="font-family:var(--font-mono); font-size:13px; color:var(--text-muted);" id="sessionCounter">
+          Showing 6 jam circles
+        </div>
+      </div>
+
+      <!-- Discovery Controls -->
+      <div class="stage-controls">
+        <div class="radius-selector-box">
+          <span class="control-label">Search Radius:</span>
+          <div class="radius-pills" id="radiusPills">
+            <button class="rad-pill" data-radius="5">5 km</button>
+            <button class="rad-pill" data-radius="10">10 km</button>
+            <button class="rad-pill active" data-radius="25">25 km</button>
+            <button class="rad-pill" data-radius="999">Any Dist</button>
+          </div>
+          <div class="custom-slider-container">
+            <input type="range" id="customRadiusRange" min="1" max="60" value="25" />
+            <span class="slider-val-readout" id="radiusValDisplay">25 km</span>
+          </div>
+        </div>
+
+        <div>
+          <select class="genre-filter-select" id="genreSelect" aria-label="Filter by music genre">
+            <option value="All">All Sounds</option>
+            <option value="Jazz & Blues">Jazz & Blues</option>
+            <option value="Acoustic">Acoustic Unplugged</option>
+            <option value="Sufi & Classical">Sufi & Qawwali</option>
+            <option value="Electronic">Ambient / Electronic</option>
+            <option value="Rock / Indie">Rock & Indie</option>
+          </select>
+        </div>
+
+        <div>
+          <select class="sort-filter-select" id="sortSelect" aria-label="Sort jam sessions">
+            <option value="nearest">Sort: Nearest</option>
+            <option value="time">Sort: Happening Soon</option>
+            <option value="rating">Sort: Top Rated</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 2-Column Discovery Layout -->
+      <div class="stage-layout">
+        <!-- Sessions Feed Container -->
+        <div class="sessions-stream" id="sessionsContainer">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Night Venue Canvas Radar Map -->
+        <div class="night-map-panel">
+          <div class="map-header-bar">
+            <span>DELHI NCR RADAR MATRIX</span>
+            <span style="color:var(--amber)">GPS: 28.5494° N, 77.2001° E</span>
+          </div>
+          <div class="radar-canvas-container">
+            <canvas id="nightRadarCanvas"></canvas>
+            <div class="map-floating-overlay">
+              <div class="active-pin-info">
+                <strong id="radarPinTitle">Hauz Khas Terrace Circle</strong>
+                <span id="radarPinMeta">3.2 km away · 8:00 PM Tonight</span>
+              </div>
+              <button class="btn-card-action btn-card-primary" id="btnFocusPin">Focus Map</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof Testimonials -->
+    <section class="testimonials-stage">
+      <div class="section-eyebrow">COMMUNITY CHATTER</div>
+      <h3 class="section-title">What Delhi musicians say about JamPulse</h3>
+      <div class="testimonials-grid">
+        <div class="testi-card">
+          <p class="testi-quote">"Found three brass players for our Shahpur Jat funk collective in under forty-eight hours. The proximity radius makes all the difference."</p>
+          <div class="testi-author">
+            <div class="author-avatar">AK</div>
+            <div>
+              <div class="author-name">Aman Kashyap</div>
+              <div class="author-role">Saxophone / Keys · South Delhi</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <p class="testi-quote">"We host acoustic Sufi sessions on our terrace in Nizamuddin every alternate Sunday. JamPulse filters out noise and brings real passionate vocalists."</p>
+          <div class="testi-author">
+            <div class="author-avatar">ZR</div>
+            <div>
+              <div class="author-name">Zoya Rehman</div>
+              <div class="author-role">Harmonium & Vocals · Central Delhi</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <p class="testi-quote">"As an expat bassist newly arrived in Gurgaon, I had no jamming network. JamPulse helped me plug into two weekend blues sessions right away."</p>
+          <div class="testi-author">
+            <div class="author-avatar">MN</div>
+            <div>
+              <div class="author-name">Marcus Nielson</div>
+              <div class="author-role">Fretless Bass · DLF Phase 5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing CTA -->
+    <section class="closing-cta">
+      <h2 class="cta-h2">Have an empty terrace or studio?</h2>
+      <p class="cta-p">Set your sound, pick your discovery radius, and let nearby instruments find you tonight. No promoters, no hassle.</p>
+      <button class="btn-primary-stage" onclick="alert('Host Jam Flow Initiated')">
+        <span>Host a Jam in Your City</span> 🎸
+      </button>
+    </section>
+  </main>
+
+  <footer class="stage-footer">
+    <div>JamPulse — Direction 1: The Midnight Stage (Cinematic Night-Venue / Neon Noir)</div>
+    <div>Built for Delhi NCR Live Music Communities · 2026</div>
+  </footer>
+
+  <!-- Standalone Interactive JavaScript Engine -->
+  <script>
+    (function() {
+      'use strict';
+
+      // 1. Authentic Delhi NCR Jam Dataset
+      const JAMS_DATA = [
+        {
+          id: 'jam-1',
+          title: 'Shahpur Jat Basement Jazz & Soul Collective',
+          genre: 'Jazz & Blues',
+          vibe: 'Midnight Jazz',
+          theme: 'theme-jazz',
+          venue: 'The Sound Cellar, Shahpur Jat',
+          distanceKm: 3.4,
+          time: 'Tonight · 9:30 PM',
+          desc: 'Improvised neo-soul and hard bop standards. Upright bass, hollow-body archtop guitar, and brush drums already in the pocket.',
+          instruments: ['Trumpet', 'Tenor Sax', 'Keys / Rhodes'],
+          host: 'Vikram Sethi',
+          x: 0.48, y: 0.52
+        },
+        {
+          id: 'jam-2',
+          title: 'Hauz Khas Village Sunset Terrace Acoustic',
+          genre: 'Acoustic',
+          vibe: 'Acoustic Unplugged',
+          theme: 'theme-indie',
+          venue: 'Rooftop 14, Hauz Khas Village',
+          distanceKm: 4.8,
+          time: 'Tonight · 7:00 PM',
+          desc: 'Relaxed acoustic circle overlooking the monument reservoir. Fingerstyle guitars, cajón, and warm harmonies under festival fairy lights.',
+          instruments: ['Cajón', 'Acoustic Guitar', 'Vocals'],
+          host: 'Meera Sen',
+          x: 0.42, y: 0.49
+        },
+        {
+          id: 'jam-3',
+          title: 'Nizamuddin Sufi Baithak & Qawwali Strings',
+          genre: 'Sufi & Classical',
+          vibe: 'Sufi & Classical',
+          theme: 'theme-sufi',
+          venue: 'Courtyard Haveli, Nizamuddin West',
+          distanceKm: 8.2,
+          time: 'Tomorrow · 6:30 PM',
+          desc: 'Intimate evening exploring Amir Khusro ragas and ecstatic Sufi folk. Floor seating with warm chai, harmoniums, and dholak.',
+          instruments: ['Harmonium', 'Tabla / Dholak', 'Mandolin'],
+          host: 'Zoya Rehman',
+          x: 0.56, y: 0.42
+        },
+        {
+          id: 'jam-4',
+          title: 'DLF CyberCity Midnight Blues & Slide Jam',
+          genre: 'Jazz & Blues',
+          vibe: 'Delta Blues',
+          theme: 'theme-blues',
+          venue: 'Studio B, Sector 24 Gurugram',
+          distanceKm: 18.5,
+          time: 'Saturday · 10:00 PM',
+          desc: 'Chicago blues, minor blues turns, and open-tuned slide jams. 2x12 tube amps and PA setup ready for guest harp and rhythm players.',
+          instruments: ['Blues Harp', 'Electric Bass', 'Slide Guitar'],
+          host: 'Kabir Varma',
+          x: 0.28, y: 0.75
+        },
+        {
+          id: 'jam-5',
+          title: 'Okhla Phase-3 Synth & Ambient Modular Lab',
+          genre: 'Electronic',
+          vibe: 'Ambient / Synth',
+          theme: 'theme-electronic',
+          venue: 'The Warehouse Loft, Okhla Ind Area',
+          distanceKm: 12.1,
+          time: 'Saturday · 8:00 PM',
+          desc: 'Hardware synths, CV clocks, and hypnotic downtempo beats. Bring your Eurorack skiff, drum machine, or pedalboard.',
+          instruments: ['Analog Synth', 'Sampler / MPC', 'Electric Violin'],
+          host: 'Arjun Das',
+          x: 0.65, y: 0.62
+        },
+        {
+          id: 'jam-6',
+          title: 'Majnu Ka Tilla Indie Pop & Dream Folk Circle',
+          genre: 'Rock / Indie',
+          vibe: 'Indie Folk',
+          theme: 'theme-indie',
+          venue: 'River Terrace, New Aruna Nagar',
+          distanceKm: 22.0,
+          time: 'Sunday · 5:00 PM',
+          desc: 'Jangle-pop songwriting circle. Sharing unfinished original demos, chord changes, and collaborating on vocal counter-melodies.',
+          instruments: ['Ukulele', 'Bass Guitar', 'Melodica'],
+          host: 'Tenzin Norbu',
+          x: 0.52, y: 0.18
+        }
+      ];
+
+      // State
+      let activeRadius = 25;
+      let activeGenre = 'All';
+      let activeSort = 'nearest';
+      let savedSet = new Set();
+      let activePin = JAMS_DATA[0];
+
+      // DOM Elements
+      const container = document.getElementById('sessionsContainer');
+      const counter = document.getElementById('sessionCounter');
+      const radiusPills = document.querySelectorAll('.rad-pill');
+      const slider = document.getElementById('customRadiusRange');
+      const radiusValDisplay = document.getElementById('radiusValDisplay');
+      const genreSelect = document.getElementById('genreSelect');
+      const sortSelect = document.getElementById('sortSelect');
+      const radarPinTitle = document.getElementById('radarPinTitle');
+      const radarPinMeta = document.getElementById('radarPinMeta');
+
+      // 2. Render Cards
+      function render() {
+        let filtered = JAMS_DATA.filter(jam => {
+          const matchRadius = activeRadius >= 999 || jam.distanceKm <= activeRadius;
+          const matchGenre = activeGenre === 'All' || jam.genre === activeGenre;
+          return matchRadius && matchGenre;
+        });
+
+        if (activeSort === 'nearest') {
+          filtered.sort((a, b) => a.distanceKm - b.distanceKm);
+        } else if (activeSort === 'rating') {
+          filtered.sort((a, b) => b.title.length - a.title.length);
+        }
+
+        counter.textContent = `Showing ${filtered.length} jam circle${filtered.length === 1 ? '' : 's'}`;
+        container.innerHTML = '';
+
+        if (filtered.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state-notice">
+              <h3>No Jam Sessions in this Frequency</h3>
+              <p>Try widening your search radius or switching genres to discover more nearby circles.</p>
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach(jam => {
+          const card = document.createElement('article');
+          card.className = 'jam-night-card';
+          const isSaved = savedSet.has(jam.id);
+
+          card.innerHTML = `
+            <div class="card-poster ${jam.theme}">
+              <div class="poster-accent-rings"></div>
+              <span class="poster-vibe-tag">${jam.vibe}</span>
+              <strong class="poster-title-stamp">${jam.vibe}</strong>
+              <div class="poster-host-pill">Host: ${jam.host}</div>
+            </div>
+            <div class="card-body">
+              <div>
+                <div class="card-topline">
+                  <span class="card-time">${jam.time}</span>
+                  <button class="btn-save-bookmark ${isSaved ? 'saved' : ''}" data-id="${jam.id}" title="Save session">
+                    ${isSaved ? '♥' : '♡'}
+                  </button>
+                </div>
+                <h3 class="jam-session-title">${jam.title}</h3>
+                <div class="jam-location-meta">
+                  <span>⌖ ${jam.distanceKm} km away</span>
+                  <span>📍 ${jam.venue}</span>
+                </div>
+                <p class="jam-desc-text">${jam.desc}</p>
+              </div>
+              <div class="card-bottom-deck">
+                <div class="instrument-tags">
+                  ${jam.instruments.map(i => `<span class="instrument-pill">${i}</span>`).join('')}
+                </div>
+                <div class="card-actions">
+                  <button class="btn-card-action" onclick="alert('Messaging host: ${jam.host}')">Contact</button>
+                  <button class="btn-card-action btn-card-primary" onclick="alert('RSVP request sent to ${jam.title}')">Ask to Join →</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Card hover 3D tilt
+          card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+            card.style.transform = `perspective(900px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg) translateY(-4px)`;
+          });
+          card.addEventListener('mouseleave', () => {
+            card.style.transform = 'perspective(900px) rotateY(0deg) rotateX(0deg) translateY(0)';
+          });
+
+          // Pin focus
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            activePin = jam;
+            radarPinTitle.textContent = jam.title;
+            radarPinMeta.textContent = `${jam.distanceKm} km away · ${jam.venue}`;
+          });
+
+          // Bookmark handler
+          const bookmarkBtn = card.querySelector('.btn-save-bookmark');
+          bookmarkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (savedSet.has(jam.id)) savedSet.delete(jam.id);
+            else savedSet.add(jam.id);
+            render();
+          });
+
+          container.appendChild(card);
+        });
+      }
+
+      // Event Listeners for Filters
+      radiusPills.forEach(btn => {
+        btn.addEventListener('click', () => {
+          radiusPills.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeRadius = Number(btn.getAttribute('data-radius'));
+          slider.value = activeRadius >= 999 ? 60 : activeRadius;
+          radiusValDisplay.textContent = activeRadius >= 999 ? 'Any' : `${activeRadius} km`;
+          render();
+        });
+      });
+
+      slider.addEventListener('input', () => {
+        activeRadius = Number(slider.value);
+        radiusValDisplay.textContent = `${activeRadius} km`;
+        radiusPills.forEach(b => b.classList.remove('active'));
+        render();
+      });
+
+      genreSelect.addEventListener('change', () => {
+        activeGenre = genreSelect.value;
+        render();
+      });
+
+      sortSelect.addEventListener('change', () => {
+        activeSort = sortSelect.value;
+        render();
+      });
+
+      // 3. Audio Spectrum Simulation Canvas (Interactive Machine 1)
+      const audioCanvas = document.getElementById('soundSpectrumCanvas');
+      const actx = audioCanvas.getContext('2d');
+      let audioActive = false;
+      let synthAudioContext = null;
+
+      function resizeAudioCanvas() {
+        audioCanvas.width = audioCanvas.clientWidth * (window.devicePixelRatio || 1);
+        audioCanvas.height = audioCanvas.clientHeight * (window.devicePixelRatio || 1);
+        actx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      }
+      window.addEventListener('resize', resizeAudioCanvas);
+      resizeAudioCanvas();
+
+      let phase = 0;
+      function drawSpectrum() {
+        const w = audioCanvas.clientWidth;
+        const h = audioCanvas.clientHeight;
+        actx.clearRect(0, 0, w, h);
+
+        const bars = 48;
+        const barWidth = (w - (bars * 3)) / bars;
+
+        for (let i = 0; i < bars; i++) {
+          const freq = Math.sin(phase + i * 0.18) * 0.5 + 0.5;
+          const bassBoost = (1 - (i / bars)) * 0.4;
+          const height = Math.max(8, (freq + bassBoost) * (h * 0.78) * (audioActive ? 1.2 : 0.6));
+
+          const grad = actx.createLinearGradient(0, h, 0, h - height);
+          grad.addColorStop(0, '#ff9838');
+          grad.addColorStop(0.7, '#ff4757');
+          grad.addColorStop(1, '#8c52ff');
+
+          actx.fillStyle = grad;
+          actx.fillRect(i * (barWidth + 3), h - height, barWidth, height);
+
+          // Peak dots
+          actx.fillStyle = '#ffffff';
+          actx.fillRect(i * (barWidth + 3), h - height - 4, barWidth, 2);
+        }
+
+        phase += audioActive ? 0.08 : 0.025;
+        requestAnimationFrame(drawSpectrum);
+      }
+      requestAnimationFrame(drawSpectrum);
+
+      // Web Audio Harmonic Chord Generator on click
+      document.getElementById('audioPulseBtn').addEventListener('click', () => {
+        audioActive = !audioActive;
+        const btn = document.getElementById('audioPulseBtn');
+        btn.innerHTML = audioActive ? '<span>⏹ Mute Monitor</span>' : '<span>▶ Tune Frequency</span>';
+
+        if (audioActive) {
+          try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            synthAudioContext = new AudioCtx();
+            const now = synthAudioContext.currentTime;
+
+            // Warm minor-9 chord frequencies (A minor 9)
+            [220, 261.63, 329.63, 392.00, 493.88].forEach((freq, idx) => {
+              const osc = synthAudioContext.createOscillator();
+              const gain = synthAudioContext.createGain();
+              osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+              osc.frequency.setValueAtTime(freq, now);
+
+              gain.gain.setValueAtTime(0.001, now);
+              gain.gain.exponentialRampToValueAtTime(0.04 / (idx + 1), now + 0.5);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + 4);
+
+              osc.connect(gain);
+              gain.connect(synthAudioContext.destination);
+              osc.start(now);
+              osc.stop(now + 4.2);
+            });
+          } catch(e) {
+            console.log('Web Audio not supported or blocked');
+          }
+        }
+      });
+
+      // 4. Night Venue Radar Map Canvas (Interactive Machine 2)
+      const radarCanvas = document.getElementById('nightRadarCanvas');
+      const rctx = radarCanvas.getContext('2d');
+      function resizeRadar() {
+        radarCanvas.width = radarCanvas.clientWidth * (window.devicePixelRatio || 1);
+        radarCanvas.height = radarCanvas.clientHeight * (window.devicePixelRatio || 1);
+        rctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      }
+      window.addEventListener('resize', resizeRadar);
+      resizeRadar();
+
+      let radarAngle = 0;
+      function drawRadar() {
+        const w = radarCanvas.clientWidth;
+        const h = radarCanvas.clientHeight;
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        rctx.clearRect(0, 0, w, h);
+
+        // Grid lines
+        rctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        rctx.lineWidth = 1;
+        [w * 0.15, w * 0.3, w * 0.44].forEach(r => {
+          rctx.beginPath(); rctx.arc(cx, cy, r, 0, Math.PI * 2); rctx.stroke();
+        });
+
+        // Crosshairs
+        rctx.beginPath();
+        rctx.moveTo(cx, 0); rctx.lineTo(cx, h);
+        rctx.moveTo(0, cy); rctx.lineTo(w, cy);
+        rctx.stroke();
+
+        // Search Radius Circle
+        const maxRadiusPx = w * 0.44;
+        const currentRadiusPx = activeRadius >= 999 ? maxRadiusPx : Math.min(maxRadiusPx, (activeRadius / 50) * maxRadiusPx);
+        rctx.strokeStyle = 'rgba(255, 152, 56, 0.4)';
+        rctx.fillStyle = 'rgba(255, 152, 56, 0.04)';
+        rctx.lineWidth = 1.5;
+        rctx.setLineDash([4, 4]);
+        rctx.beginPath();
+        rctx.arc(cx, cy, currentRadiusPx, 0, Math.PI * 2);
+        rctx.fill(); rctx.stroke();
+        rctx.setLineDash([]);
+
+        // Radar Sweep Beam
+        rctx.save();
+        rctx.translate(cx, cy);
+        rctx.rotate(radarAngle);
+        const sweepGrad = rctx.createRadialGradient(0, 0, 0, 0, 0, maxRadiusPx);
+        sweepGrad.addColorStop(0, 'rgba(255, 152, 56, 0.25)');
+        sweepGrad.addColorStop(1, 'rgba(255, 152, 56, 0)');
+        rctx.fillStyle = sweepGrad;
+        rctx.beginPath();
+        rctx.moveTo(0, 0);
+        rctx.arc(0, 0, maxRadiusPx, -0.3, 0);
+        rctx.closePath();
+        rctx.fill();
+        rctx.restore();
+
+        // Plot Delhi NCR Jam Pins
+        JAMS_DATA.forEach(jam => {
+          const px = jam.x * w;
+          const py = jam.y * h;
+          const isSelected = activePin && activePin.id === jam.id;
+          const inRange = jam.distanceKm <= activeRadius;
+
+          rctx.beginPath();
+          rctx.arc(px, py, isSelected ? 8 : (inRange ? 5 : 3), 0, Math.PI * 2);
+          rctx.fillStyle = isSelected ? '#ff9838' : (inRange ? '#05df9d' : '#555f75');
+          rctx.fill();
+
+          if (isSelected) {
+            rctx.strokeStyle = '#ffffff';
+            rctx.lineWidth = 2;
+            rctx.stroke();
+            // Ping wave
+            rctx.beginPath();
+            rctx.arc(px, py, 14 + Math.sin(phase * 3) * 4, 0, Math.PI * 2);
+            rctx.strokeStyle = 'rgba(255, 152, 56, 0.5)';
+            rctx.stroke();
+          }
+        });
+
+        // User center GPS dot
+        rctx.beginPath();
+        rctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        rctx.fillStyle = '#ff4757';
+        rctx.fill();
+        rctx.strokeStyle = '#fff';
+        rctx.lineWidth = 1.5;
+        rctx.stroke();
+
+        radarAngle += 0.02;
+        requestAnimationFrame(drawRadar);
+      }
+      requestAnimationFrame(drawRadar);
+
+      // Initial Render
+      render();
+    })();
+  </script>
+</body>
+</html>

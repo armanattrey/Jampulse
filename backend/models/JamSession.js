@@ -25,6 +25,7 @@ const JamSessionSchema = new mongoose.Schema({
   averageRating: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
   allowInAppChat: { type: Boolean, default: true }, // Enables masked in-app communication
+  allowPhoneCalls: { type: Boolean, default: false }, // Host opts in to verified, privacy-masked calls
   status: { type: String, enum: ['upcoming', 'live', 'completed'], default: 'upcoming' },
   createdAt: { type: Date, default: Date.now }
 });

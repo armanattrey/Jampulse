@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>JamPulse — Neo-Ethereal Lounge (Direction 5: Liquid Chrome &amp; Aurora)</title>
+  <meta name="description" content="Direction 5: Liquid Chrome & Aurora / Neo-Ethereal for JamPulse. Find your people. Find your sound.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       THE NEO-ETHEREAL LOUNGE · LIQUID CHROME & AURORA
+       Tech: Canvas Fluid Chromatic Dispersion, 3D Gyroscope Glass, Iridescent Conic Rims
+       Palette: Deep Cosmic Indigo #090a14, Iridescent Cyan #4df3ff, Magenta Plasma #ff4bf6, Soft Opal Glass
+       ══════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg-deep: #070913;
+      --bg-glass: rgba(18, 22, 38, 0.65);
+      --border-glass: rgba(255, 255, 255, 0.12);
+      --text: #f5f8ff;
+      --text-soft: #9ba6c2;
+      --cyan: #4df3ff;
+      --magenta: #ff4bf6;
+      --lime: #8eff72;
+      --chrome: linear-gradient(135deg, #ffffff 0%, #a4b8ff 45%, #ff98ec 75%, #ffffff 100%);
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-deep);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Ambient Liquid Aurora Canvas */
+    #fluidAuroraCanvas {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      opacity: 0.65;
+    }
+
+    /* Cosmic Glass Header */
+    header.chrome-header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(18px, 4vw, 48px);
+      background: rgba(9, 11, 20, 0.7);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid var(--border-glass);
+    }
+    .chrome-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+    .chrome-orb-icon {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff, var(--cyan) 40%, var(--magenta) 80%);
+      box-shadow: 0 0 25px rgba(77, 243, 255, 0.6);
+      display: grid; place-items: center; font-size: 18px; color: #000; font-weight: 900;
+    }
+    .brand-glow-title {
+      font-family: var(--font-display); font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
+    }
+    .brand-glow-title span {
+      background: var(--chrome); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .btn-glass-pill {
+      background: rgba(255, 255, 255, 0.08); color: #fff;
+      border: 1px solid var(--border-glass); border-radius: 999px;
+      padding: 9px 20px; font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      cursor: pointer; backdrop-filter: blur(12px); transition: all 0.25s ease;
+    }
+    .btn-glass-pill:hover {
+      background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 20px rgba(77, 243, 255, 0.3);
+    }
+    .btn-chrome-solid {
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      color: #050711; border: 0; border-radius: 999px;
+      padding: 10px 24px; font-family: var(--font-display); font-size: 13px; font-weight: 800;
+      cursor: pointer; box-shadow: 0 6px 25px rgba(255, 75, 246, 0.45);
+      transition: all 0.25s ease;
+    }
+    .btn-chrome-solid:hover { transform: translateY(-2px); box-shadow: 0 10px 35px rgba(77, 243, 255, 0.6); }
+
+    /* Shell */
+    main.chrome-shell {
+      position: relative; z-index: 10; max-width: 1400px; margin: 0 auto;
+      padding: 40px clamp(18px, 4vw, 48px) 100px;
+    }
+
+    /* Hero */
+    section.hero-chrome {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center;
+      padding: 40px 0 60px;
+    }
+    .ethereal-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      background: rgba(77, 243, 255, 0.1); border: 1px solid rgba(77, 243, 255, 0.3);
+      font-size: 12px; font-weight: 700; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 20px;
+    }
+    .hero-h1-chrome {
+      font-family: var(--font-display); font-size: clamp(40px, 6vw, 80px);
+      font-weight: 900; line-height: 0.98; letter-spacing: -0.04em; margin-bottom: 24px;
+    }
+    .hero-h1-chrome .liquid-gradient {
+      background: linear-gradient(95deg, #ffffff, var(--cyan) 40%, var(--magenta) 80%, #ffffff);
+      background-size: 250% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: chrome-shine 8s linear infinite;
+    }
+    @keyframes chrome-shine { to { background-position: 250% center; } }
+
+    .hero-lead-chrome {
+      font-size: clamp(16px, 1.8vw, 19px); color: var(--text-soft); line-height: 1.6;
+      max-width: 560px; margin-bottom: 34px;
+    }
+    .hero-actions-deck { display: flex; gap: 16px; flex-wrap: wrap; }
+
+    /* 3D Floating Gyroscope Card in Hero */
+    .hero-floating-glass-box {
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 28px; padding: 30px; backdrop-filter: blur(30px);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      position: relative; overflow: hidden;
+    }
+    .floating-glass-box::before {
+      content: ""; position: absolute; inset: -2px; border-radius: 30px;
+      background: conic-gradient(from 180deg at 50% 50%, var(--cyan), var(--magenta), var(--lime), var(--cyan));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      padding: 1px; pointer-events: none; opacity: 0.6;
+    }
+
+    /* Stats Ribbon */
+    .chrome-stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 30px 0 60px;
+    }
+    .c-stat-card {
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 20px; padding: 22px; backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .c-stat-num { font-family: var(--font-display); font-size: 32px; font-weight: 800; color: #fff; }
+    .c-stat-num span { color: var(--cyan); }
+    .c-stat-lbl { font-size: 12px; color: var(--text-soft); font-weight: 600; text-transform: uppercase; }
+
+    /* Discovery Section */
+    section.chrome-discovery { margin-top: 20px; }
+    .chrome-controls {
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 24px; padding: 20px 28px; backdrop-filter: blur(24px);
+      display: grid; grid-template-columns: 1fr auto auto; gap: 24px; align-items: center;
+      margin-bottom: 30px;
+    }
+    .pill-radius-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-radius-pill {
+      background: rgba(255, 255, 255, 0.05); color: var(--text-soft);
+      border: 1px solid var(--border-glass); border-radius: 999px; padding: 8px 16px;
+      font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-radius-pill.active {
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      color: #070913; font-weight: 800; border-color: transparent;
+      box-shadow: 0 0 16px rgba(77, 243, 255, 0.5);
+    }
+
+    .chrome-select {
+      background: rgba(255, 255, 255, 0.07); color: #fff;
+      border: 1px solid var(--border-glass); border-radius: 12px; padding: 10px 18px;
+      font-size: 13px; font-weight: 600; cursor: pointer; outline: none;
+    }
+    .chrome-select option { background: #0c0f1d; color: #fff; }
+
+    /* Layout: Cards + Floating Delhi Orbit Map */
+    .chrome-layout-grid {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 30px; align-items: start;
+    }
+
+    /* Glass Jam Cards */
+    .chrome-cards-stream { display: grid; gap: 20px; }
+    .glass-jam-card {
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 22px; padding: 20px; backdrop-filter: blur(20px);
+      display: grid; grid-template-columns: 130px 1fr; gap: 20px;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1.2), border-color 0.25s, box-shadow 0.25s;
+      cursor: pointer; position: relative;
+    }
+    .glass-jam-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(77, 243, 255, 0.4);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(77, 243, 255, 0.2);
+    }
+    .card-hologram-disc {
+      border-radius: 16px; background: linear-gradient(145deg, rgba(77, 243, 255, 0.25), rgba(255, 75, 246, 0.25));
+      border: 1px solid rgba(255, 255, 255, 0.15); display: flex; flex-direction: column;
+      justify-content: space-between; padding: 14px; position: relative; overflow: hidden;
+    }
+    .holo-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--cyan); letter-spacing: 0.1em; }
+    .holo-title { font-family: var(--font-display); font-size: 18px; font-weight: 900; line-height: 1; text-transform: uppercase; }
+
+    .card-glass-body { display: flex; flex-direction: column; justify-content: space-between; }
+    .c-card-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .c-time-pill { font-size: 12px; font-weight: 700; color: var(--cyan); }
+    .c-jam-title { font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .c-jam-venue { font-size: 12px; color: var(--text-soft); margin-bottom: 10px; }
+    .c-jam-desc { font-size: 13px; color: #a8b4d0; line-height: 1.5; margin-bottom: 16px; }
+    .c-tags-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .c-inst-pill {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-glass);
+      border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+    }
+
+    /* Ambient Orbit Map */
+    .ambient-orbit-map {
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 24px; overflow: hidden; backdrop-filter: blur(28px);
+      position: sticky; top: 100px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    }
+    .orbit-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-glass);
+      display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;
+    }
+    .orbit-canvas-container { position: relative; height: 400px; background: rgba(5, 7, 14, 0.7); }
+    #orbitMapCanvas { width: 100%; height: 100%; display: block; }
+
+    /* Testimonials */
+    section.chrome-testimonials { margin: 80px 0 50px; }
+    .chrome-testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .c-testi-card {
+      background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 20px; padding: 24px; backdrop-filter: blur(20px);
+    }
+    .c-testi-quote { font-size: 14px; color: #cbd5ea; line-height: 1.6; margin-bottom: 16px; }
+
+    /* Closing */
+    section.chrome-closing {
+      background: radial-gradient(circle at 50% 0%, rgba(77, 243, 255, 0.15), transparent 70%), var(--bg-glass);
+      border: 1px solid var(--border-glass); border-radius: 30px; padding: clamp(40px, 6vw, 70px);
+      text-align: center; margin-top: 60px; backdrop-filter: blur(30px);
+    }
+
+    footer.chrome-footer {
+      border-top: 1px solid var(--border-glass); margin-top: 60px; padding-top: 24px;
+      display: flex; justify-content: space-between; font-size: 12px; color: var(--text-soft);
+    }
+
+    @media (max-width: 900px) {
+      section.hero-chrome { grid-template-columns: 1fr; }
+      .chrome-layout-grid { grid-template-columns: 1fr; }
+      .chrome-controls { grid-template-columns: 1fr; }
+      .chrome-stats-grid { grid-template-columns: 1fr 1fr; }
+      .chrome-testimonials-grid { grid-template-columns: 1fr; }
+      .ambient-orbit-map { position: relative; top: auto; order: -1; margin-bottom: 24px; }
+      .glass-jam-card { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="fluidAuroraCanvas"></canvas>
+
+  <header class="chrome-header">
+    <a href="#" class="chrome-brand">
+      <div class="chrome-orb-icon">♫</div>
+      <div class="brand-glow-title">Jam<span>Pulse</span></div>
+    </a>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-glass-pill" onclick="alert('Delhi NCR Hub Active')">⌖ Delhi NCR</button>
+      <button class="btn-chrome-solid" onclick="alert('Host session trigger')">＋ Host a Circle</button>
+    </div>
+  </header>
+
+  <main class="chrome-shell">
+    <section class="hero-chrome">
+      <div>
+        <div class="ethereal-badge">✨ Ambient Soundbaths · Rooftop Chillout · Neo-Soul</div>
+        <h1 class="hero-h1-chrome">
+          Find your people.<br>
+          <span class="liquid-gradient">Find your sound.</span>
+        </h1>
+        <p class="hero-lead-chrome">
+          Drift into open-ended psychedelic circles, sunset harp sessions, and ambient synthesizer jams nestled in the green corners of Delhi NCR.
+        </p>
+        <div class="hero-actions-deck">
+          <button class="btn-chrome-solid" onclick="document.getElementById('chromeDiscovery').scrollIntoView({behavior:'smooth'})">
+            Enter Discovery Sphere ➔
+          </button>
+          <button class="btn-glass-pill" onclick="alert('Host jam flow')">
+            Host a Gathering
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-floating-glass-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:11px; font-weight:800; color:var(--cyan); text-transform:uppercase;">NOW TUNING UP</span>
+          <span style="font-size:11px; color:var(--lime);">● 6 CIRCLES ACTIVE</span>
+        </div>
+        <div style="font-family:var(--font-display); font-size:24px; font-weight:800; line-height:1.2; margin-bottom:8px;">
+          Aravalli Hills Sunset Dream-Pop Circle
+        </div>
+        <div style="font-size:13px; color:var(--text-soft); margin-bottom:16px;">
+          Faridabad Green Ridge · Tonight, 6:30 PM · 14.5 km
+        </div>
+        <p style="font-size:13px; color:#c0cbe2; line-height:1.5;">
+          "Lush reverb pedals, nylon strings, shimmer delays, and twilight acoustic percussion under open ridge skies."
+        </p>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <div class="chrome-stats-grid">
+      <div class="c-stat-card">
+        <div class="c-stat-num">520<span>+</span></div>
+        <div class="c-stat-lbl">Active Artists</div>
+      </div>
+      <div class="c-stat-card">
+        <div class="c-stat-num">12<span>ms</span></div>
+        <div class="c-stat-lbl">Sync Latency</div>
+      </div>
+      <div class="c-stat-card">
+        <div class="c-stat-num">98<span>%</span></div>
+        <div class="c-stat-lbl">Positive Resonances</div>
+      </div>
+      <div class="c-stat-card">
+        <div class="c-stat-num">24<span>km</span></div>
+        <div class="c-stat-lbl">Default Range</div>
+      </div>
+    </div>
+
+    <!-- Discovery -->
+    <section class="chrome-discovery" id="chromeDiscovery">
+      <div class="chrome-controls">
+        <div>
+          <span style="font-size:11px; font-weight:800; color:var(--text-soft); text-transform:uppercase; margin-bottom:8px; display:block;">Resonance Radius:</span>
+          <div class="pill-radius-group" id="chromeRadiusGroup">
+            <button class="btn-radius-pill" data-rad="5">5 km</button>
+            <button class="btn-radius-pill" data-rad="10">10 km</button>
+            <button class="btn-radius-pill active" data-rad="25">25 km</button>
+            <button class="btn-radius-pill" data-rad="999">Global</button>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size:11px; font-weight:800; color:var(--text-soft); text-transform:uppercase; margin-bottom:8px; display:block;">Vibe Texture:</span>
+          <select class="chrome-select" id="chromeGenreSelect">
+            <option value="All">All Textures</option>
+            <option value="Dream-Pop">Dream-Pop &amp; Reverb</option>
+            <option value="Ambient">Ambient Harp &amp; Soundbath</option>
+            <option value="Lo-Fi">Lakefront Lo-Fi</option>
+            <option value="Neo-Soul">Courtyard Neo-Soul</option>
+          </select>
+        </div>
+
+        <div>
+          <span style="font-size:11px; font-weight:800; color:var(--text-soft); text-transform:uppercase; margin-bottom:8px; display:block;">Sort:</span>
+          <select class="chrome-select" id="chromeSortSelect">
+            <option value="nearest">Nearest First</option>
+            <option value="time">Starting Soon</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Layout: Cards + Orbit Map -->
+      <div class="chrome-layout-grid">
+        <div class="chrome-cards-stream" id="chromeCardStream"></div>
+
+        <div class="ambient-orbit-map">
+          <div class="orbit-header">
+            <span>COSMIC DELHI ORBIT MATRIX</span>
+            <span style="color:var(--cyan)">RADAR: 28.5494 N</span>
+          </div>
+          <div class="orbit-canvas-container">
+            <canvas id="orbitMapCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="chrome-testimonials">
+      <div class="chrome-testimonials-grid">
+        <div class="c-testi-card">
+          <p class="c-testi-quote">"We held a sunset flute and harp jam at the ridge. The proximity radius helped four ambient sound designers connect effortlessly."</p>
+          <div style="font-weight:700; font-size:12px; color:var(--cyan);">— Maya S., Harpist</div>
+        </div>
+        <div class="c-testi-card">
+          <p class="c-testi-quote">"The aesthetics alone inspired us. Playing neo-soul chords in Dhan Mill with musicians met through JamPulse was pure magic."</p>
+          <div style="font-weight:700; font-size:12px; color:var(--magenta);">— Rahul D., Keys</div>
+        </div>
+        <div class="c-testi-card">
+          <p class="c-testi-quote">"Zero friction. Just good ears, great gear, and genuine creative warmth."</p>
+          <div style="font-weight:700; font-size:12px; color:var(--lime);">— Tara K., Vocals</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="chrome-footer">
+      <div>JamPulse — Direction 5: Neo-Ethereal Lounge (Liquid Chrome &amp; Aurora)</div>
+      <div>DELHI NCR AMBIENT &amp; DREAM-POP CIRCUITS · 2026</div>
+    </footer>
+  </main>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const ETHEREAL_DATA = [
+        {
+          id: 'ne-1',
+          title: 'Aravalli Hills Sunset Dream-Pop Circle',
+          genre: 'Dream-Pop',
+          venue: 'Faridabad Ridge Lookout',
+          distKm: 14.5,
+          time: 'Tonight · 6:30 PM',
+          desc: 'Lush reverb pedals, nylon guitars, shimmer delay, and ambient field percussion at twilight.',
+          instruments: ['Reverb Guitar', 'Synthesizer', 'Chimes'],
+          x: 0.38, y: 0.65
+        },
+        {
+          id: 'ne-2',
+          title: 'Aerocity Sky-Lounge Ambient Soundbath & Harp',
+          genre: 'Ambient',
+          venue: 'Cloud Pavilion, Aerocity',
+          distKm: 8.2,
+          time: 'Tomorrow · 7:00 PM',
+          desc: 'Tibetan singing bowls, Celtic harp, and warm evolving modular pad textures.',
+          instruments: ['Celtic Harp', 'Singing Bowls', 'Ambient Pads'],
+          x: 0.28, y: 0.52
+        },
+        {
+          id: 'ne-3',
+          title: 'Hauz Khas Lakefront Dawn Lo-Fi Chillout',
+          genre: 'Lo-Fi',
+          venue: 'Deer Park Gazebo, HKV',
+          distKm: 4.5,
+          time: 'Sunday · 6:00 AM',
+          desc: 'Dawn chorus bird sounds, cassette tape loops, acoustic guitar, and soft flute phrasing.',
+          instruments: ['Acoustic Guitar', 'Bansuri / Flute', 'Handpan'],
+          x: 0.48, y: 0.50
+        },
+        {
+          id: 'ne-4',
+          title: 'Dhan Mill Courtyard Neo-Soul & Vocals',
+          genre: 'Neo-Soul',
+          venue: 'The Atrium, Chhatarpur',
+          distKm: 9.8,
+          time: 'Saturday · 8:30 PM',
+          desc: 'Warm Fender Rhodes voicings, fingerstyle electric bass, and velvety vocal harmonies.',
+          instruments: ['Rhodes Piano', 'Fretless Bass', 'Vocalist'],
+          x: 0.44, y: 0.60
+        }
+      ];
+
+      let activeRadius = 25;
+      let activeGenre = 'All';
+
+      const stream = document.getElementById('chromeCardStream');
+      const radiusBtns = document.querySelectorAll('#chromeRadiusGroup .btn-radius-pill');
+      const genreSelect = document.getElementById('chromeGenreSelect');
+
+      function renderEthereal() {
+        const filtered = ETHEREAL_DATA.filter(item => {
+          const rMatch = activeRadius >= 999 || item.distKm <= activeRadius;
+          const gMatch = activeGenre === 'All' || item.genre === activeGenre;
+          return rMatch && gMatch;
+        });
+
+        stream.innerHTML = '';
+        if (filtered.length === 0) {
+          stream.innerHTML = `
+            <div style="background:var(--bg-glass); border:1px solid var(--border-glass); border-radius:20px; padding:30px; text-align:center;">
+              <h3>No Ethereal Circles in Range</h3>
+              <p style="color:var(--text-soft); font-size:13px; margin-top:6px;">Widen your resonance radius.</p>
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach(jam => {
+          const card = document.createElement('article');
+          card.className = 'glass-jam-card';
+          card.innerHTML = `
+            <div class="card-hologram-disc">
+              <span class="holo-tag">${jam.genre}</span>
+              <div class="holo-title">${jam.genre}</div>
+            </div>
+            <div class="card-glass-body">
+              <div>
+                <div class="c-card-topline">
+                  <span class="c-time-pill">${jam.time}</span>
+                  <span style="font-size:11px; color:var(--text-soft);">⌖ ${jam.distKm} km away</span>
+                </div>
+                <h3 class="c-jam-title">${jam.title}</h3>
+                <div class="c-jam-venue">📍 ${jam.venue}</div>
+                <p class="c-jam-desc">${jam.desc}</p>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="c-tags-row">
+                  ${jam.instruments.map(i => `<span class="c-inst-pill">${i}</span>`).join('')}
+                </div>
+                <button class="btn-chrome-solid" style="padding:6px 14px; font-size:11px;" onclick="alert('Joining ${jam.title}')">
+                  Join Circle ➔
+                </button>
+              </div>
+            </div>
+          `;
+          stream.appendChild(card);
+        });
+      }
+
+      radiusBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          radiusBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeRadius = Number(btn.getAttribute('data-rad'));
+          renderEthereal();
+        });
+      });
+
+      genreSelect.addEventListener('change', () => {
+        activeGenre = genreSelect.value;
+        renderEthereal();
+      });
+
+      // Background Aurora Canvas
+      const bgCanvas = document.getElementById('fluidAuroraCanvas');
+      const bctx = bgCanvas.getContext('2d');
+      function resizeBg() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeBg);
+      resizeBg();
+
+      let t = 0;
+      function drawBg() {
+        const w = bgCanvas.width;
+        const h = bgCanvas.height;
+        bctx.clearRect(0, 0, w, h);
+
+        const x1 = w * 0.3 + Math.sin(t * 0.01) * 120;
+        const y1 = h * 0.3 + Math.cos(t * 0.012) * 80;
+        const g1 = bctx.createRadialGradient(x1, y1, 10, x1, y1, w * 0.45);
+        g1.addColorStop(0, 'rgba(77, 243, 255, 0.25)');
+        g1.addColorStop(1, 'rgba(77, 243, 255, 0)');
+        bctx.fillStyle = g1;
+        bctx.fillRect(0, 0, w, h);
+
+        const x2 = w * 0.7 + Math.cos(t * 0.015) * 100;
+        const y2 = h * 0.6 + Math.sin(t * 0.01) * 90;
+        const g2 = bctx.createRadialGradient(x2, y2, 10, x2, y2, w * 0.4);
+        g2.addColorStop(0, 'rgba(255, 75, 246, 0.22)');
+        g2.addColorStop(1, 'rgba(255, 75, 246, 0)');
+        bctx.fillStyle = g2;
+        bctx.fillRect(0, 0, w, h);
+
+        t++;
+        requestAnimationFrame(drawBg);
+      }
+      requestAnimationFrame(drawBg);
+
+      // Orbit Map Canvas
+      const orbitCanvas = document.getElementById('orbitMapCanvas');
+      const octx = orbitCanvas.getContext('2d');
+      function resizeOrbit() {
+        orbitCanvas.width = orbitCanvas.clientWidth * (window.devicePixelRatio || 1);
+        orbitCanvas.height = orbitCanvas.clientHeight * (window.devicePixelRatio || 1);
+        octx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      }
+      window.addEventListener('resize', resizeOrbit);
+      resizeOrbit();
+
+      let orbitAngle = 0;
+      function drawOrbit() {
+        const w = orbitCanvas.clientWidth;
+        const h = orbitCanvas.clientHeight;
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        octx.clearRect(0, 0, w, h);
+
+        // Orbit Rings
+        [w * 0.18, w * 0.32, w * 0.44].forEach((r, idx) => {
+          octx.strokeStyle = `rgba(77, 243, 255, ${0.1 + idx * 0.05})`;
+          octx.beginPath(); octx.arc(cx, cy, r, 0, Math.PI * 2); octx.stroke();
+        });
+
+        // Orbiting planet dot
+        const px = cx + Math.cos(orbitAngle) * (w * 0.32);
+        const py = cy + Math.sin(orbitAngle) * (w * 0.32);
+        octx.fillStyle = '#ff4bf6';
+        octx.beginPath(); octx.arc(px, py, 6, 0, Math.PI * 2); octx.fill();
+
+        // Pins
+        ETHEREAL_DATA.forEach(d => {
+          const dx = d.x * w;
+          const dy = d.y * h;
+          octx.fillStyle = '#4df3ff';
+          octx.beginPath(); octx.arc(dx, dy, 5, 0, Math.PI * 2); octx.fill();
+        });
+
+        orbitAngle += 0.015;
+        requestAnimationFrame(drawOrbit);
+      }
+      requestAnimationFrame(drawOrbit);
+
+      renderEthereal();
+    })();
+  </script>
+</body>
+</html>

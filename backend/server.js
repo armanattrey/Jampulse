@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const jamRoutes = require('./routes/jams');
 const reviewRoutes = require('./routes/reviews');
 const chatRoutes = require('./routes/chat');
+const callRoutes = require('./routes/calls');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5001;
@@ -50,21 +51,24 @@ for (const [route, fileName] of Object.entries(websiteFiles)) {
     });
   });
 }
+app.use('/design', express.static(path.join(FRONTEND_DIR, 'design')));
+app.use('/assets', express.static(path.join(FRONTEND_DIR, 'assets')));
+
 
 app.get('/health', (req, res) => {
   const connected = mongoose.connection.readyState === 1;
   res.status(connected ? 200 : 503).json({
     status: connected ? 'ok' : 'starting',
-    app: 'Jampals API',
+    app: 'JamPulse API',
     database: connected ? 'connected' : 'disconnected'
   });
 });
 
 app.get('/api', (req, res) => {
   res.json({
-    name: 'Jampals API',
+    name: 'JamPulse API',
     version: 1,
-    endpoints: ['/api/auth', '/api/jams', '/api/reviews', '/api/chat'],
+    endpoints: ['/api/auth', '/api/jams', '/api/reviews', '/api/chat', '/api/calls'],
     health: '/health'
   });
 });
@@ -80,6 +84,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jams', jamRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/calls', callRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
@@ -95,7 +100,7 @@ async function start() {
   }
 
   const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Jampals API listening on port ${PORT}`);
+    console.log(`JamPulse API listening on port ${PORT}`);
   });
 
   const connectToDatabase = () => mongoose.connect(MONGO_URI, {
@@ -123,7 +128,7 @@ async function start() {
 
 if (require.main === module) {
   start().catch((error) => {
-    console.error(`Could not start Jampals API: ${error.message}`);
+    console.error(`Could not start JamPulse API: ${error.message}`);
     process.exit(1);
   });
 }

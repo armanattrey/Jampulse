@@ -21,6 +21,8 @@ let activeVibe = 'All';
 let currentSort = 'distance';
 let searchQuery = '';
 let jamsData = [];
+let displayedJams = [];
+let lineupStatus = 'loading';
 let activeJamStatus = 'ready';
 const demoRsvpIds = new Set();
 
@@ -53,6 +55,8 @@ const distanceFilterSummary = document.getElementById('distanceFilterSummary');
 const distanceFilterMenu = document.getElementById('distanceFilterMenu');
 const radiusPresetButtons = document.querySelectorAll('.radius-preset');
 const genreFilterSelect = document.getElementById('genreFilterSelect');
+const genreFilterMenu = document.getElementById('genreFilterMenu');
+const genreFilterSummary = document.getElementById('genreFilterSummary');
 const sortFilterSelect = document.getElementById('sortFilterSelect');
 const jamsFeedContainer = document.getElementById('jamsFeedContainer');
 const resultsCount = document.getElementById('resultsCount');
@@ -392,14 +396,17 @@ function showCustomPopup(title, message) {
       <div class="modal-card" style="max-width:380px; text-align:center;">
         <h3 id="customPopupTitle" style="font-size:1.15rem; margin-bottom:8px; color:var(--text-primary);"></h3>
         <p id="customPopupMsg" style="font-size:0.86rem; color:var(--text-secondary); line-height:1.5; white-space:pre-line; margin-bottom:18px;"></p>
-        <button class="btn btn-brand btn-block" onclick="document.getElementById('customInfoModal').classList.add('hidden')">Got it</button>
+        <button class="btn btn-brand btn-block" onclick="closeModals()">Got it</button>
       </div>
     `;
     document.body.appendChild(popupModal);
   }
   document.getElementById('customPopupTitle').innerText = title;
   document.getElementById('customPopupMsg').innerText = message;
-  popupModal.classList.remove('hidden');
+  popupModal.setAttribute('role', 'dialog');
+  popupModal.setAttribute('aria-modal', 'true');
+  popupModal.setAttribute('aria-labelledby', 'customPopupTitle');
+  window.openModal('customInfoModal');
 }
 
 // ==================== PROFILE MENU ACTIONS ====================
@@ -463,9 +470,25 @@ function initProfileDropdownActions() {
 
   const btnPref = document.getElementById('btnPreferences');
   if (btnPref) {
-    btnPref.onclick = () => {
+    btnPref.onclick = async () => {
       closeDropdown();
-      showCustomPopup("⚙️ App Preferences", "• Default Radius: 25 km\n• Audio Notifications: Enabled\n• Metric Units (km): Enabled");
+      if (window.Capacitor?.isNativePlatform?.()) {
+        showCustomPopup('Notifications', 'Phone notifications need the native push service to be configured before JamPulse can send alerts.');
+        return;
+      }
+      if (!('Notification' in window) || !window.isSecureContext) {
+        showCustomPopup('Notifications', 'Browser notifications require a supported browser and a secure website address (HTTPS).');
+        return;
+      }
+      const requestPermission = Notification.permission === 'default'
+        ? await Notification.requestPermission()
+        : Notification.permission;
+      const permissionMessage = requestPermission === 'granted'
+        ? 'Browser permission is enabled. Background jam and message alerts still need push delivery configured.'
+        : requestPermission === 'denied'
+          ? 'Notifications are blocked in browser settings. You can allow them for JamPulse in site permissions.'
+          : 'Notifications were not enabled. You can choose Allow in your browser prompt later.';
+      showCustomPopup('Notifications', permissionMessage);
     };
   }
 
@@ -690,7 +713,9 @@ async function handleManualLocationSearch() {
 }
 
 async function fetchJamsFromBackend() {
-  resultsCount.innerText = 'Scanning...';
+  resultsCount.innerText = 'Finding nearby jams…';
+  lineupStatus = 'loading';
+  window.dispatchEvent(new CustomEvent('jampulse:jams', { detail: { jams: displayedJams, loading: true } }));
   if (DEMO_MODE) {
     jamsData = buildDemoSessions();
     const filteredJams = jamsData.filter(jam => {
@@ -735,12 +760,12 @@ async function fetchJamsFromBackend() {
       ? `${inRangeJams.length} in your distance · ${outsideCount} beyond it`
       : `${inRangeJams.length} jam${inRangeJams.length === 1 ? '' : 's'} in your distance`;
   } catch (err) {
-    jamsFeedContainer.innerHTML = `
-      <div style="background:#fee2e2;color:#991b1b;padding:16px;border-radius:12px;font-size:0.9rem">
-        ⚠️ <strong>Connecting to Cloud Services...</strong>
-      </div>
-    `;
-    resultsCount.innerText = 'Server offline';
+    displayedJams = [];
+    lineupStatus = 'error';
+    window.dispatchEvent(new CustomEvent('jampulse:jams', { detail: { jams: [], error: true } }));
+    jamsFeedContainer.innerHTML = `<div class="reel-error"><h3>We couldn’t load the lineup.</h3><p>Please try again in a moment.</p><button class="btn btn-outline" id="retryJamsBtn" type="button">Try again</button></div>`;
+    document.getElementById('retryJamsBtn').onclick = fetchJamsFromBackend;
+    resultsCount.innerText = 'Connection unavailable';
   }
 }
 
@@ -799,14 +824,20 @@ function buildDemoSessions() {
 }
 
 function renderCards(jams) {
+  displayedJams = jams;
+  lineupStatus = 'ready';
+  window.dispatchEvent(new CustomEvent('jampulse:jams', { detail: { jams } }));
   resultsCount.innerText = `${jams.length} Jam${jams.length === 1 ? '' : 's'} near you`;
   jamsFeedContainer.innerHTML = '';
+  let savedIds = [];
+  try { savedIds = JSON.parse(localStorage.getItem('jam_saved_ids') || '[]'); } catch (error) { savedIds = []; }
+  const savedJamIds = new Set(Array.isArray(savedIds) ? savedIds : []);
 
   if (jams.length === 0) {
     const outsideCount = jamsData.filter(jam => jam.withinSearchRadius === false || jam.distanceMeters > activeRadiusKm * 1000).length;
     jamsFeedContainer.innerHTML = `
-      <div style="text-align:center;padding:48px 16px;color:#64748b">
-        <span style="font-size:2.6rem">🎶</span>
+      <div class="empty-jams">
+
         <h3 style="margin-top:10px;color:#0f172a">No open jam sessions found</h3>
         <p style="font-size:0.88rem;margin-top:4px">${outsideCount ? `${outsideCount} more ${outsideCount === 1 ? 'jam is' : 'jams are'} marked beyond your distance on the map. Tap a dot or widen your distance.` : 'Widen distance or host a jam to get started.'}</p>
       </div>
@@ -819,36 +850,29 @@ function renderCards(jams) {
     card.className = 'jam-card';
 
     const distKm = jam.distanceMeters ? (jam.distanceMeters / 1000).toFixed(1) : 'Nearby';
-    const startTimeStr = new Date(jam.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const startsAt = new Date(jam.startTime);
+    const startTimeStr = Number.isNaN(startsAt.getTime()) ? 'Time to be announced' : startsAt.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
     const isAttending = DEMO_MODE ? demoRsvpIds.has(jam._id) : currentUser && jam.rsvpUsers?.includes(currentUser._id);
+    const isSaved = savedJamIds.has(jam._id);
+    const posterTitle = ({'Acoustic Unplugged':'Acoustic','Electric Jam':'Electric','Open Mic':'Open mic','Sufi & Classical':'Sufi & classical','Chill Electronic':'Electronic','Jazz & Blues':'Jazz & blues'})[jam.vibe] || 'Open jam';
 
     card.innerHTML = `
-      <div class="card-top">
-        <span class="card-team">${escapeHtml(jam.hostTeam)}</span>
-        <span class="card-dist-badge">📍 ${distKm} km</span>
+      <div class="jam-poster" aria-label="${escapeHtml(jam.vibe || 'Open')} jam poster">
+        <span class="poster-tag">JAMPULSE · LOCAL JAM</span>
+        <strong>${escapeHtml(posterTitle)}</strong>
+        <small>MAKE SOME NOISE</small>
       </div>
-
-      <h3 class="card-title">${escapeHtml(jam.title)}</h3>
-      <p class="card-desc">${escapeHtml(jam.description || 'No description.')}</p>
-
-      <div class="card-info-table">
-        <div class="info-item"><span>📌</span> <strong>${escapeHtml(jam.locationName)}</strong></div>
-        <div class="info-item"><span>⏰</span> Starts at <strong>${startTimeStr}</strong></div>
-      </div>
-
-      <div class="card-tags">
-        <span class="tag-badge vibe-tag">${escapeHtml(jam.vibe)}</span>${(jam.instrumentsNeeded || []).map(i => `<span class="tag-badge">Need: ${escapeHtml(i)}</span>`).join('')}
-      </div>
-
-      <div class="card-bottom">
-        <div class="rating-pill">
-          <span class="star" style="color:#f59e0b">★</span> ${jam.averageRating || 'New'}
-        </div>
-        <div class="card-actions">
-          <button class="btn btn-outline btn-sm contact-host-trigger">Contact</button>
-          <button class="btn ${isAttending ? 'btn-brand' : 'btn-subtle'} btn-sm rsvp-trigger">
-            ${isAttending ? '✓ In Circle' : '+ Join In'}
-          </button>
+      <div class="jam-info">
+        <div class="jam-topline"><span>${escapeHtml(startTimeStr)}</span><button type="button" class="jam-save-trigger ${isSaved ? 'is-saved' : ''}" aria-label="${isSaved ? 'Remove saved jam' : 'Save jam'}" aria-pressed="${isSaved}">${isSaved ? '♥' : '♡'}</button></div>
+        <h3 class="card-title">${escapeHtml(jam.title)}</h3>
+        <div class="jam-meta"><span>⌖ ${escapeHtml(distKm)} km</span><span>⌖ ${escapeHtml(jam.locationName)}</span></div>
+        <p class="card-desc">${escapeHtml(jam.description || 'A local music circle is looking for its next sound.')}</p>
+        <div class="jam-bottom">
+          <div class="card-tags"><span class="tag-badge vibe-tag">${escapeHtml(jam.vibe || 'Open Jam')}</span>${(jam.instrumentsNeeded || []).slice(0, 3).map(i => `<span class="tag-badge">${escapeHtml(i)}</span>`).join('')}</div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-outline btn-sm contact-host-trigger">Contact</button>
+            <button type="button" class="btn ${isAttending ? 'btn-subtle' : 'btn-brand'} btn-sm rsvp-trigger">${isAttending ? '✓ In Circle' : 'Ask to join →'}</button>
+          </div>
         </div>
       </div>
     `;
@@ -856,6 +880,14 @@ function renderCards(jams) {
     card.onclick = () => map.flyTo([jam.location.coordinates[1], jam.location.coordinates[0]], 15);
     card.querySelector('.contact-host-trigger').onclick = (e) => { e.stopPropagation(); openContactModal(jam); };
     card.querySelector('.rsvp-trigger').onclick = (e) => { e.stopPropagation(); handleRsvp(jam._id); };
+    card.querySelector('.jam-save-trigger').onclick = (e) => {
+      e.stopPropagation();
+      const nextIds = new Set(savedJamIds);
+      if (nextIds.has(jam._id)) nextIds.delete(jam._id);
+      else nextIds.add(jam._id);
+      localStorage.setItem('jam_saved_ids', JSON.stringify([...nextIds]));
+      renderCards(jams);
+    };
 
     jamsFeedContainer.appendChild(card);
   });
@@ -986,7 +1018,8 @@ document.getElementById('hostJamForm').onsubmit = async (e) => {
     endTime: new Date(document.getElementById('hostEndTime').value).toISOString(),
     discoveryRadiusKm: Number(document.getElementById('hostDiscoveryRadius').value),
     instrumentsNeeded: document.getElementById('hostInstruments').value.split(',').map(s => s.trim()).filter(Boolean),
-    description: document.getElementById('hostDesc').value
+    description: document.getElementById('hostDesc').value,
+    allowPhoneCalls: document.getElementById('hostAllowPrivateCalls').checked
   };
 
   try {
@@ -1019,11 +1052,44 @@ function openContactModal(jam) {
   }
   activeJamForContact = jam;
   document.getElementById('contactSubtitleHeader').innerText = `${jam.title} (${jam.hostTeam})`;
-  const whatsappLink = document.getElementById('whatsappContactLink');
-  const cleanPhone = typeof jam.hostPhone === 'string' ? jam.hostPhone.replace(/[^\d]/g, '') : '';
-  whatsappLink.href = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
-  whatsappLink.classList.toggle('hidden', !cleanPhone);
+  const privateCallBtn = document.getElementById('privateCallBtn');
+  const privateCallStatus = document.getElementById('privateCallStatus');
+  privateCallBtn.classList.toggle('hidden', jam.allowPhoneCalls !== true);
+  privateCallBtn.disabled = false;
+  privateCallBtn.textContent = '☎ Request a private call';
+  privateCallStatus.classList.add('hidden');
+  privateCallStatus.textContent = '';
   openModal('contactModal');
+}
+
+async function requestPrivateCall(jam) {
+  if (!token) {
+    closeModals();
+    return openModal('authModal');
+  }
+  const button = document.getElementById('privateCallBtn');
+  const status = document.getElementById('privateCallStatus');
+  button.disabled = true;
+  button.textContent = 'Setting up private line…';
+  status.classList.add('hidden');
+  try {
+    const response = await fetch(`${API_BASE}/calls/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ jamSessionId: jam._id })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Could not set up a private call.');
+    const expires = new Date(data.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    status.textContent = `Temporary shared number: ${data.callNumber}. Both you and the host call this number before ${expires}; your personal numbers stay hidden.`;
+    status.classList.remove('hidden');
+    button.textContent = 'Private call line ready';
+  } catch (error) {
+    status.textContent = error.message || 'Could not set up a private call.';
+    status.classList.remove('hidden');
+    button.disabled = false;
+    button.textContent = '☎ Request a private call';
+  }
 }
 
 async function openJamConversation(jam) {
@@ -1257,12 +1323,20 @@ document.getElementById('guestLoginBtn').onclick = async () => {
   } catch (e) { alert('Guest login error'); }
 };
 
+let lastModalTrigger = null;
 window.openModal = (id) => {
   const el = document.getElementById(id);
-  if (el) el.classList.remove('hidden');
+  if (!el) return;
+  lastModalTrigger = document.activeElement;
+  el.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  el.querySelector('button, input, select, textarea, [tabindex]')?.focus();
 };
 
 window.closeModals = () => {
+  document.getElementById('customInfoModal')?.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  if (lastModalTrigger?.isConnected) lastModalTrigger.focus();
   [authModal, hostModal, reviewModal, locationModal, contactModal, messagesModal, profileModal].forEach(m => {
     if (m) m.classList.add('hidden');
   });
@@ -1299,6 +1373,7 @@ openLoginModalBtn.onclick = () => DEMO_MODE
   ? showCustomPopup('Demo sign-in', 'Sign-in providers are not connected in this sample preview.')
   : openModal('authModal');
 document.getElementById('inAppContactBtn').onclick = () => activeJamForContact && openJamConversation(activeJamForContact);
+document.getElementById('privateCallBtn').onclick = () => activeJamForContact && requestPrivateCall(activeJamForContact);
 document.getElementById('btnMessages').onclick = openMessages;
 openHostBtn.onclick = () => {
   document.getElementById('hostCoords').value = `${browsingPosition.lat.toFixed(5)},${browsingPosition.lng.toFixed(5)}`;
@@ -1313,7 +1388,29 @@ openHostBtn.onclick = () => {
 
 genreFilterSelect.addEventListener('change', () => {
   activeVibe = genreFilterSelect.value;
+  genreFilterSummary.textContent = genreFilterSelect.selectedOptions[0]?.textContent || 'All sounds';
+  genreFilterMenu.open = false;
   fetchJamsFromBackend();
+});
+
+document.querySelectorAll('[data-nav-action]').forEach(button => {
+  button.addEventListener('click', () => {
+    const action = button.dataset.navAction;
+    document.querySelectorAll('[data-nav-action]').forEach(item => {
+      item.classList.toggle('is-active', item.dataset.navAction === action);
+    });
+    const destinations = {
+      'my-jams': 'btnJamInvites',
+      messages: 'btnMessages',
+      saved: 'btnSavedJams',
+      host: 'openHostBtn'
+    };
+    if (action === 'discover') {
+      document.querySelector('.discovery-welcome')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    document.getElementById(destinations[action])?.click();
+  });
 });
 
 function setSearchRadius(value, shouldFetch = true) {
@@ -1355,6 +1452,22 @@ radiusPresetButtons.forEach(button => {
     customRadiusMenu.open = false;
     distanceFilterMenu.open = false;
   });
+});
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  activeVibe = 'All';
+  genreFilterSelect.value = 'All';
+  genreFilterSummary.textContent = 'All sounds';
+  genreFilterMenu.open = false;
+  currentSort = 'distance';
+  sortFilterSelect.value = 'distance';
+  mainSearchInput.value = '';
+  searchQuery = '';
+  searchClearBtn.classList.add('hidden');
+  distanceFilterMenu.open = false;
+  customRadiusMenu.open = false;
+  setSearchRadius(25, false);
+  fetchJamsFromBackend();
 });
 
 sortFilterSelect.onchange = (e) => {
@@ -1420,4 +1533,36 @@ window.addEventListener('DOMContentLoaded', () => {
   initProfileDropdownActions();
   setLocationToCurrentGPS();
   if (!DEMO_MODE) setTimeout(initGoogleAuth, 400);
+});
+
+// Shared session actions connect the React reel to the working app.
+window.jampulseUI = {
+  getJams: () => displayedJams,
+  getStatus: () => lineupStatus,
+  select: jam => map?.flyTo([jam.location.coordinates[1], jam.location.coordinates[0]], 15),
+  contact: openContactModal,
+  join: handleRsvp,
+  isSaved: id => { try { return JSON.parse(localStorage.getItem('jam_saved_ids') || '[]').includes(id); } catch { return false; } },
+  isAttending: jam => DEMO_MODE ? demoRsvpIds.has(jam._id) : Boolean(currentUser && jam.rsvpUsers?.includes(currentUser._id)),
+  save: id => {
+    let ids = [];
+    try { ids = JSON.parse(localStorage.getItem('jam_saved_ids') || '[]'); } catch {}
+    const saved = new Set(Array.isArray(ids) ? ids : []);
+    if (saved.has(id)) saved.delete(id); else saved.add(id);
+    localStorage.setItem('jam_saved_ids', JSON.stringify([...saved]));
+    renderCards(displayedJams);
+  }
+};
+
+// Keep keyboard navigation inside the active dialog and restore the opener on close.
+document.addEventListener('keydown', event => {
+  const modal = [...document.querySelectorAll('.modal-backdrop:not(.hidden)')].at(-1);
+  if (!modal) return;
+  if (event.key === 'Escape') { event.preventDefault(); closeModals(); return; }
+  if (event.key !== 'Tab') return;
+  const items = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]')].filter(el => el.getClientRects().length);
+  const first = items[0], last = items.at(-1);
+  if (!first) return;
+  if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
 });

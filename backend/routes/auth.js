@@ -61,7 +61,7 @@ function recordOtpFailure(contact, record) {
 function verificationEmailHtml(otp) {
   return `
     <div style="font-family:sans-serif;padding:24px;background:#f8fafc;border-radius:12px;max-width:480px;margin:0 auto;border:1px solid #e2e8f0">
-      <h2 style="color:#e11d48;margin:0 0 12px">Welcome to Jampals</h2>
+      <h2 style="color:#e11d48;margin:0 0 12px">Welcome to JamPulse</h2>
       <p style="color:#334155;font-size:15px;line-height:1.5">Use this single-use verification code to sign in:</p>
       <div style="font-size:32px;font-weight:800;letter-spacing:6px;color:#0f172a;background:#fff;padding:16px;border-radius:8px;text-align:center;border:1.5px dashed #cbd5e1;margin:20px 0">${otp}</div>
       <p style="color:#64748b;font-size:12px;margin:0">Valid for 10 minutes. If you did not request this, you can ignore this email.</p>
@@ -82,6 +82,20 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
 
   if (user) {
     let modified = false;
+    if (authProvider === 'phone' && phone) {
+      const normalizedPhone = phone.trim();
+      if (user.phone && user.phone !== normalizedPhone) {
+        throw new Error('This account already has a different phone number. Sign in to that account before changing it.');
+      }
+      if (!user.phone) {
+        user.phone = normalizedPhone;
+        modified = true;
+      }
+      if (!user.phoneVerified) {
+        user.phoneVerified = true;
+        modified = true;
+      }
+    }
     if (avatarUrl && !user.avatarUrl) {
       user.avatarUrl = avatarUrl;
       modified = true;
@@ -108,7 +122,10 @@ async function findOrCreateUser({ email, phone, name, role, authProvider, avatar
   };
 
   if (email) newUserData.email = email.toLowerCase().trim();
-  if (phone) newUserData.phone = phone.trim();
+  if (phone) {
+    newUserData.phone = phone.trim();
+    newUserData.phoneVerified = authProvider === 'phone';
+  }
 
   try {
     user = await User.create(newUserData);
@@ -177,6 +194,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
 
     if (isPhoneChanging) {
       user.phone = newPhone;
+      user.phoneVerified = false;
       user.lastPhoneChange = new Date(now);
     }
 
@@ -354,7 +372,7 @@ router.post('/email/send-otp', async (req, res) => {
           body: JSON.stringify({
             from: process.env.EMAIL_FROM,
             to: [cleanEmail],
-            subject: `${otp} is your Jampals verification code`,
+            subject: `${otp} is your JamPulse verification code`,
             html: verificationEmailHtml(otp)
           })
         });
@@ -384,9 +402,9 @@ router.post('/email/send-otp', async (req, res) => {
         const mailTransporter = nodemailer.createTransport(mailOptions);
 
         await mailTransporter.sendMail({
-          from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'Jampals <no-reply@localhost>',
+          from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'JamPulse <no-reply@localhost>',
           to: cleanEmail,
-          subject: `${otp} is your Jampals verification code`,
+          subject: `${otp} is your JamPulse verification code`,
           html: verificationEmailHtml(otp)
         });
 
